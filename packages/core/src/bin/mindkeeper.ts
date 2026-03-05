@@ -10,7 +10,7 @@ const program = new Command();
 program
   .name("mindkeeper")
   .description("Time machine for your AI's brain — version control for agent context files")
-  .version("0.2.0");
+  .version("0.2.1");
 
 function resolveWorkDir(dir?: string): string {
   return path.resolve(dir ?? process.cwd());
@@ -27,13 +27,12 @@ program
   .option("--dir <dir>", "Directory to track", ".")
   .action(async (opts: { dir: string }) => {
     const tracker = await createTracker(opts.dir);
-    await tracker.init();
+    const { initialFiles } = await tracker.init();
     console.log(`Initialized mindkeeper in ${tracker.workDir}`);
     console.log(`History data: ${tracker.gitDir}`);
 
-    const status = await tracker.status();
-    if (status.pendingChanges.length > 0) {
-      console.log(`Initial snapshot created with ${status.pendingChanges.length} tracked files.`);
+    if (initialFiles.length > 0) {
+      console.log(`Initial snapshot created with ${initialFiles.length} tracked files.`);
     }
   });
 

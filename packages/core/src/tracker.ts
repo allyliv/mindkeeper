@@ -70,7 +70,7 @@ export class Tracker {
     });
   }
 
-  async init(): Promise<void> {
+  async init(): Promise<{ initialFiles: string[] }> {
     this.config = await loadConfig(this.workDir);
     await this.store.init();
     await this.ensureGitignore();
@@ -81,6 +81,8 @@ export class Tracker {
       const msg = generateTemplateMessage(changed.map((e) => e.filepath));
       await this.store.commit(msg);
     }
+
+    return { initialFiles: changed.map((e) => e.filepath) };
   }
 
   async snapshot(options?: SnapshotOptions): Promise<CommitInfo> {
