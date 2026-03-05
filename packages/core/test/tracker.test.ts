@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { Vault } from "../src/vault.js";
+import { Tracker } from "../src/tracker.js";
 
 let tempDir: string;
-let vault: Vault;
+let tracker: Tracker;
 
 beforeEach(async () => {
   tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "mindkeeper-test-"));
-  vault = new Vault({ workDir: tempDir });
+  tracker = new Tracker({ workDir: tempDir });
 });
 
 afterEach(async () => {
@@ -24,10 +24,10 @@ async function readFile(name: string): Promise<string> {
   return fs.readFile(path.join(tempDir, name), "utf-8");
 }
 
-describe("Vault.init", () => {
+describe("Tracker.init", () => {
   it("creates .mindkeeper directory and .gitignore", async () => {
     await writeFile("AGENTS.md", "# Agent rules");
-    await vault.init();
+    await tracker.init();
 
     const gitDir = path.join(tempDir, ".mindkeeper");
     const stat = await fs.stat(gitDir);
@@ -40,20 +40,20 @@ describe("Vault.init", () => {
   it("creates initial snapshot of existing files", async () => {
     await writeFile("AGENTS.md", "# Agent rules");
     await writeFile("SOUL.md", "# Personality");
-    await vault.init();
+    await tracker.init();
 
-    const commits = await vault.history();
+    const commits = await tracker.history();
     expect(commits.length).toBeGreaterThanOrEqual(1);
   });
 });
 
-describe("Vault.snapshot", () => {
+describe("Tracker.snapshot", () => {
   it("creates a commit with the given message", async () => {
     await writeFile("AGENTS.md", "# Rules v1");
-    await vault.init();
+    await tracker.init();
 
     await writeFile("AGENTS.md", "# Rules v2");
-    const commit = await vault.snapshot({ message: "Update rules" });
+    const commit = await tracker.snapshot({ message: "Update rules" });
 
     expect(commit.oid).toBeTruthy();
     expect(commit.message).toBe("Update rules");
@@ -61,27 +61,27 @@ describe("Vault.snapshot", () => {
 
   it("creates a named tag when name is provided", async () => {
     await writeFile("AGENTS.md", "# Rules");
-    await vault.init();
+    await tracker.init();
 
-    const commit = await vault.snapshot({ name: "checkpoint-1", message: "First checkpoint" });
-    const status = await vault.status();
+    const commit = await tracker.snapshot({ name: "checkpoint-1", message: "First checkpoint" });
+    const status = await tracker.status();
 
     expect(status.snapshots.some((s) => s.name === "checkpoint-1")).toBe(true);
   });
 });
 
-describe("Vault.history", () => {
+describe("Tracker.history", () => {
   it("returns commits in reverse chronological order", async () => {
     await writeFile("SOUL.md", "v1");
-    await vault.init();
+    await tracker.init();
 
     await writeFile("SOUL.md", "v2");
-    await vault.snapshot({ message: "Second version" });
+    await tracker.snapshot({ message: "Second version" });
 
     await writeFile("SOUL.md", "v3");
-    await vault.snapshot({ message: "Third version" });
+    await tracker.snapshot({ message: "Third version" });
 
-    const commits = await vault.history();
+    const commits = await tracker.history();
     expect(commits.length).toBeGreaterThanOrEqual(3);
     expect(commits[0].message).toBe("Third version");
   });
@@ -89,32 +89,32 @@ describe("Vault.history", () => {
   it("filters by file when specified", async () => {
     await writeFile("SOUL.md", "soul v1");
     await writeFile("AGENTS.md", "agents v1");
-    await vault.init();
+    await tracker.init();
 
     await writeFile("SOUL.md", "soul v2");
-    await vault.snapshot({ message: "Update soul" });
+    await tracker.snapshot({ message: "Update soul" });
 
     await writeFile("AGENTS.md", "agents v2");
-    await vault.snapshot({ message: "Update agents" });
+    await tracker.snapshot({ message: "Update agents" });
 
-    const soulHistory = await vault.history({ file: "SOUL.md" });
+    const soulHistory = await tracker.history({ file: "SOUL.md" });
     const soulMessages = soulHistory.map((c) => c.message);
     expect(soulMessages).toContain("Update soul");
     expect(soulMessages).not.toContain("Update agents");
   });
 });
 
-describe("Vault.diff", () => {
+describe("Tracker.diff", () => {
   it("shows additions and deletions between versions", async () => {
     await writeFile("SOUL.md", "Be formal.\n");
-    await vault.init();
-    const commits1 = await vault.history();
+    await tracker.init();
+    const commits1 = await tracker.history();
 
     await writeFile("SOUL.md", "Be friendly.\nUse humor.\n");
-    await vault.snapshot({ message: "Change tone" });
-    const commits2 = await vault.history();
+    await tracker.snapshot({ message: "Change tone" });
+    const commits2 = await tracker.history();
 
-    const result = await vault.diff({
+    const result = await tracker.diff({
       file: "SOUL.md",
       from: commits1[0].oid,
       to: commits2[0].oid,
@@ -127,16 +127,16 @@ describe("Vault.diff", () => {
   });
 });
 
-describe("Vault.rollback", () => {
+describe("Tracker.rollback", () => {
   it("restores file content and creates a rollback commit", async () => {
     await writeFile("SOUL.md", "Original content");
-    await vault.init();
-    const initial = (await vault.history())[0];
+    await tracker.init();
+    const initial = (await tracker.history())[0];
 
     await writeFile("SOUL.md", "Modified content");
-    await vault.snapshot({ message: "Modify soul" });
+    await tracker.snapshot({ message: "Modify soul" });
 
-    const rollbackCommit = await vault.rollback({
+    const rollbackCommit = await tracker.rollback({
       file: "SOUL.md",
       to: initial.oid,
     });
@@ -148,13 +148,13 @@ describe("Vault.rollback", () => {
   });
 });
 
-describe("Vault.status", () => {
+describe("Tracker.status", () => {
   it("reports pending changes", async () => {
     await writeFile("AGENTS.md", "initial");
-    await vault.init();
+    await tracker.init();
 
     await writeFile("AGENTS.md", "changed");
-    const status = await vault.status();
+    const status = await tracker.status();
 
     expect(status.initialized).toBe(true);
     expect(status.pendingChanges.length).toBeGreaterThan(0);

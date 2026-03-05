@@ -1,6 +1,6 @@
-import { Vault, VaultWatcher } from "mindkeeper";
-import { registerVaultTools } from "./tools.js";
-import { registerVaultCli } from "./cli.js";
+import { Tracker, Watcher } from "mindkeeper";
+import { registerTrackerTools } from "./tools.js";
+import { registerTrackerCli } from "./cli.js";
 import { createWatcherService } from "./service.js";
 import { createOpenClawLlmProvider } from "./llm-provider.js";
 
@@ -21,15 +21,15 @@ export default async function mindkeeperPlugin(api: OpenClawPluginApi) {
     log: api.log,
   });
 
-  const vault = new Vault({
+  const tracker = new Tracker({
     workDir: workspaceDir,
     llmProvider: llmProvider ?? undefined,
   });
 
-  registerVaultTools(api, vault);
-  registerVaultCli(api, vault);
+  registerTrackerTools(api, tracker);
+  registerTrackerCli(api, tracker);
 
-  const watcherService = createWatcherService(vault, api);
+  const watcherService = createWatcherService(tracker, api);
   api.registerService?.(watcherService);
 
   api.log?.info?.("[mindkeeper] Plugin loaded.");

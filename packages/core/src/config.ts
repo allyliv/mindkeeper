@@ -21,7 +21,7 @@ export interface CommitMessageConfig {
   llm?: LlmConfig;
 }
 
-export interface VaultConfig {
+export interface TrackerConfig {
   tracking: TrackingConfig;
   snapshot: SnapshotConfig;
   commitMessage: CommitMessageConfig;
@@ -29,7 +29,7 @@ export interface VaultConfig {
 
 const SENSITIVE_FIELDS = ["commitMessage.llm.apiKey"] as const;
 
-const DEFAULT_CONFIG: VaultConfig = {
+const DEFAULT_CONFIG: TrackerConfig = {
   tracking: {
     include: [
       "AGENTS.md",
@@ -129,7 +129,7 @@ export function getWorkspaceConfigPath(workDir: string): string {
   return path.join(workDir, ".mindkeeper.json");
 }
 
-export async function loadConfig(workDir: string): Promise<VaultConfig> {
+export async function loadConfig(workDir: string): Promise<TrackerConfig> {
   let merged: Record<string, unknown> = structuredClone(
     DEFAULT_CONFIG as unknown as Record<string, unknown>,
   );
@@ -147,9 +147,9 @@ export async function loadConfig(workDir: string): Promise<VaultConfig> {
     merged = deepMerge(merged, workspaceConfig);
   }
 
-  return merged as unknown as VaultConfig;
+  return merged as unknown as TrackerConfig;
 }
 
-export function getDefaultConfig(): VaultConfig {
+export function getDefaultConfig(): TrackerConfig {
   return structuredClone(DEFAULT_CONFIG);
 }

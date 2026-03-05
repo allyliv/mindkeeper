@@ -2,37 +2,36 @@
 
 import { Command } from "commander";
 import path from "node:path";
-import { Vault } from "../vault.js";
-import { VaultWatcher } from "../watcher.js";
+import { Tracker } from "../tracker.js";
+import { Watcher } from "../watcher.js";
 
 const program = new Command();
 
 program
   .name("mindkeeper")
   .description("Time machine for your AI's brain — version control for agent context files")
-  .version("0.1.0");
+  .version("0.2.0");
 
 function resolveWorkDir(dir?: string): string {
   return path.resolve(dir ?? process.cwd());
 }
 
-async function createVault(dir?: string): Promise<Vault> {
+async function createTracker(dir?: string): Promise<Tracker> {
   const workDir = resolveWorkDir(dir);
-  const vault = new Vault({ workDir });
-  return vault;
+  return new Tracker({ workDir });
 }
 
 program
   .command("init")
-  .description("Initialize a vault for a directory")
-  .argument("[dir]", "Directory to track", ".")
-  .action(async (dir: string) => {
-    const vault = await createVault(dir);
-    await vault.init();
-    console.log(`Initialized mindkeeper in ${vault.workDir}`);
-    console.log(`Git data: ${vault.gitDir}`);
+  .description("Initialize mindkeeper for a directory")
+  .option("--dir <dir>", "Directory to track", ".")
+  .action(async (opts: { dir: string }) => {
+    const tracker = await createTracker(opts.dir);
+    await tracker.init();
+    console.log(`Initialized mindkeeper in ${tracker.workDir}`);
+    console.log(`History data: ${tracker.gitDir}`);
 
-    const status = await vault.status();
+    const status = await tracker.status();
     if (status.pendingChanges.length > 0) {
       console.log(`Initial snapshot created with ${status.pendingChanges.length} tracked files.`);
     }
@@ -41,18 +40,18 @@ program
 program
   .command("status")
   .description("Show tracking status and pending changes")
-  .argument("[dir]", "Workspace directory", ".")
-  .action(async (dir: string) => {
-    const vault = await createVault(dir);
-    const status = await vault.status();
+  .option("--dir <dir>", "Workspace directory", ".")
+  .action(async (opts: { dir: string }) => {
+    const tracker = await createTracker(opts.dir);
+    const status = await tracker.status();
 
     if (!status.initialized) {
-      console.log("Vault not initialized. Run `mindkeeper init` first.");
+      console.log("Not initialized. Run `mindkeeper init` first.");
       return;
     }
 
     console.log(`Workspace: ${status.workDir}`);
-    console.log(`Git data:  ${status.gitDir}`);
+    console.log(`History:   ${status.gitDir}`);
     console.log();
 
     if (status.pendingChanges.length === 0) {
@@ -82,8 +81,8 @@ program
   .option("-n, --limit <count>", "Number of entries to show", "20")
   .option("--dir <dir>", "Workspace directory", ".")
   .action(async (file: string | undefined, opts: { limit: string; dir: string }) => {
-    const vault = await createVault(opts.dir);
-    const commits = await vault.history({ file, limit: parseInt(opts.limit, 10) });
+    const tracker = await createTracker(opts.dir);
+    const commits = await tracker.history({ file, limit: parseInt(opts.limit, 10) });
 
     if (commits.length === 0) {
       console.log("No history found.");
@@ -107,8 +106,8 @@ program
   .argument("[to]", "Target commit hash (defaults to HEAD)")
   .option("--dir <dir>", "Workspace directory", ".")
   .action(async (file: string, from: string, to: string | undefined, opts: { dir: string }) => {
-    const vault = await createVault(opts.dir);
-    const result = await vault.diff({ file, from, to });
+    const tracker = await createTracker(opts.dir);
+    const result = await tracker.diff({ file, from, to });
     console.log(result.unified);
   });
 
@@ -120,10 +119,10 @@ program
   .option("--dir <dir>", "Workspace directory", ".")
   .option("-y, --yes", "Skip confirmation prompt")
   .action(async (file: string, to: string, opts: { dir: string; yes?: boolean }) => {
-    const vault = await createVault(opts.dir);
+    const tracker = await createTracker(opts.dir);
 
     if (!opts.yes) {
-      const diff = await vault.diff({ file, from: to, to: "HEAD" });
+      const diff = await tracker.diff({ file, from: to, to: "HEAD" });
       console.log("Changes that will be reverted:");
       console.log(diff.unified);
       console.log();
@@ -143,7 +142,7 @@ program
       }
     }
 
-    const commit = await vault.rollback({ file, to });
+    const commit = await tracker.rollback({ file, to });
     console.log(`Rolled back ${file} to ${to.slice(0, 8)}.`);
     console.log(`Recorded as commit ${commit.oid.slice(0, 8)}: ${commit.message}`);
   });
@@ -155,8 +154,8 @@ program
   .option("-m, --message <msg>", "Snapshot message")
   .option("--dir <dir>", "Workspace directory", ".")
   .action(async (name: string | undefined, opts: { message?: string; dir: string }) => {
-    const vault = await createVault(opts.dir);
-    const commit = await vault.snapshot({
+    const tracker = await createTracker(opts.dir);
+    const commit = await tracker.snapshot({
       name,
       message: opts.message,
     });
@@ -173,11 +172,11 @@ program
   .description("Start file watcher daemon")
   .option("--dir <dir>", "Workspace directory", ".")
   .action(async (opts: { dir: string }) => {
-    const vault = await createVault(opts.dir);
-    await vault.init();
+    const tracker = await createTracker(opts.dir);
+    await tracker.init();
 
-    const watcher = new VaultWatcher({
-      vault,
+    const watcher = new Watcher({
+      tracker,
       onSnapshot: (commit) => {
         const time = new Date().toISOString().replace("T", " ").slice(0, 19);
         console.log(`[${time}] Snapshot ${commit.oid.slice(0, 8)}: ${commit.message}`);
@@ -188,7 +187,7 @@ program
     });
 
     await watcher.start();
-    console.log(`Watching ${vault.workDir} for changes (debounce: ${vault.getConfig().snapshot.debounceMs}ms)...`);
+    console.log(`Watching ${tracker.workDir} for changes (debounce: ${tracker.getConfig().snapshot.debounceMs}ms)...`);
     console.log("Press Ctrl+C to stop.");
 
     const shutdown = async () => {

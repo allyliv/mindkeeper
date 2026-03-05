@@ -1,4 +1,4 @@
-import type { Vault, DiffResult, CommitInfo, VaultStatus } from "mindkeeper";
+import type { Tracker, DiffResult, CommitInfo, TrackerStatus } from "mindkeeper";
 
 type RegisterTool = (tool: PluginTool, opts?: Record<string, unknown>) => void;
 
@@ -9,9 +9,9 @@ interface PluginTool {
   handler(args: Record<string, unknown>): Promise<unknown>;
 }
 
-export function registerVaultTools(
+export function registerTrackerTools(
   api: { registerTool?: RegisterTool },
-  vault: Vault,
+  tracker: Tracker,
 ): void {
   if (!api.registerTool) return;
 
@@ -34,7 +34,7 @@ export function registerVaultTools(
       },
     },
     handler: async (args) => {
-      const commits = await vault.history({
+      const commits = await tracker.history({
         file: args.file as string | undefined,
         limit: (args.limit as number | undefined) ?? 10,
       });
@@ -57,7 +57,7 @@ export function registerVaultTools(
       required: ["file", "from"],
     },
     handler: async (args) => {
-      const result = await vault.diff({
+      const result = await tracker.diff({
         file: args.file as string,
         from: args.from as string,
         to: args.to as string | undefined,
@@ -89,7 +89,7 @@ export function registerVaultTools(
       const preview = (args.preview as boolean | undefined) ?? true;
 
       if (preview) {
-        const diff = await vault.diff({ file, from: to, to: "HEAD" });
+        const diff = await tracker.diff({ file, from: to, to: "HEAD" });
         return {
           preview: true,
           diff: formatDiffResult(diff),
@@ -98,7 +98,7 @@ export function registerVaultTools(
         };
       }
 
-      const commit = await vault.rollback({ file, to });
+      const commit = await tracker.rollback({ file, to });
       return {
         preview: false,
         success: true,
@@ -122,7 +122,7 @@ export function registerVaultTools(
       required: ["name"],
     },
     handler: async (args) => {
-      const commit = await vault.snapshot({
+      const commit = await tracker.snapshot({
         name: args.name as string,
         message: args.message as string | undefined,
       });
@@ -136,10 +136,10 @@ export function registerVaultTools(
 
   api.registerTool({
     name: "mind_status",
-    description: "Show the current status of the context vault: tracked files, pending changes, and named snapshots.",
+    description: "Show the current tracking status: tracked files, pending changes, and named snapshots.",
     parameters: { type: "object", properties: {} },
     handler: async () => {
-      const status = await vault.status();
+      const status = await tracker.status();
       return formatStatusResult(status);
     },
   });
@@ -167,7 +167,7 @@ function formatDiffResult(result: DiffResult) {
   };
 }
 
-function formatStatusResult(status: VaultStatus) {
+function formatStatusResult(status: TrackerStatus) {
   return {
     initialized: status.initialized,
     workDir: status.workDir,

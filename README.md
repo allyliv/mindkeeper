@@ -105,37 +105,45 @@ npm install -g mindkeeper
 
 ### Usage
 
+Every command accepts a `--dir <path>` option to point to the workspace you want to operate on. If you omit `--dir`, mindkeeper defaults to the **current working directory**. This means you either `cd` into the workspace first, or always pass `--dir` explicitly — both approaches work, just be consistent.
+
 ```bash
-# Initialize vault for your workspace
-mindkeeper init ~/.openclaw/workspace
+# Initialize mindkeeper for a specific workspace
+mindkeeper init --dir ~/.nanobot/workspace
+
+# Or cd in first, then omit --dir
+cd ~/.nanobot/workspace
+mindkeeper init
 
 # View change history
-mindkeeper history SOUL.md
+mindkeeper history SOUL.md --dir ~/.nanobot/workspace
 
 # Compare two versions
-mindkeeper diff SOUL.md abc1234 def5678
+mindkeeper diff SOUL.md abc1234 def5678 --dir ~/.nanobot/workspace
 
 # Rollback with preview and confirmation
-mindkeeper rollback SOUL.md abc1234
+mindkeeper rollback SOUL.md abc1234 --dir ~/.nanobot/workspace
 
 # Create a named checkpoint
-mindkeeper snapshot before-experiment --message "Saving current personality"
+mindkeeper snapshot before-experiment --message "Saving current personality" --dir ~/.nanobot/workspace
 
 # Start background watcher
-mindkeeper watch
+mindkeeper watch --dir ~/.nanobot/workspace
 ```
 
 ### CLI Reference
 
-| Command | Description |
-|---------|-------------|
-| `init [dir]` | Initialize a vault for a directory |
-| `status` | Show tracking status and pending changes |
-| `history [file]` | View change history (optionally filtered by file) |
-| `diff <file> <from> [to]` | Compare two versions of a file |
-| `rollback <file> <to>` | Rollback a file with preview and confirmation |
-| `snapshot [name]` | Create a named snapshot |
-| `watch` | Start file watcher daemon |
+All commands share a consistent `--dir <path>` option. There are no positional directory arguments — directory is always `--dir`.
+
+| Command | Options | Description |
+|---------|---------|-------------|
+| `init` | `--dir <path>` | Initialize mindkeeper for a directory |
+| `status` | `--dir <path>` | Show tracking status and pending changes |
+| `history [file]` | `--dir <path>`, `-n <count>` | View change history (optionally filtered by file) |
+| `diff <file> <from> [to]` | `--dir <path>` | Compare two versions of a file |
+| `rollback <file> <to>` | `--dir <path>`, `-y` | Rollback a file with preview and confirmation |
+| `snapshot [name]` | `--dir <path>`, `-m <msg>` | Create a named snapshot |
+| `watch` | `--dir <path>` | Start file watcher daemon |
 
 ## How It Works
 
@@ -190,7 +198,7 @@ Changes are batched with a 30-second debounce window. If you edit `SOUL.md` mult
 
 ### Workspace config — `.mindkeeper.json`
 
-This file is tracked by the vault and safe to share. Place it in your workspace root.
+This file is tracked by mindkeeper and safe to share. Place it in your workspace root.
 
 ```json
 {
@@ -227,7 +235,7 @@ This file is **never tracked** and never shared. Use it for sensitive settings l
 }
 ```
 
-> **Security**: Sensitive fields (e.g., `commitMessage.llm.apiKey`) are **only allowed in global config**. If mindkeeper detects an API key in your workspace config, it refuses to start and tells you exactly what to move. This prevents accidental credential leakage when sharing vaults.
+> **Security**: Sensitive fields (e.g., `commitMessage.llm.apiKey`) are **only allowed in global config**. If mindkeeper detects an API key in your workspace config, it refuses to start and tells you exactly what to move. This prevents accidental credential leakage when sharing workspace configs.
 
 ## Architecture
 
@@ -236,7 +244,7 @@ mindkeeper/
 ├── packages/
 │   ├── core/              # npm: mindkeeper
 │   │   ├── src/
-│   │   │   ├── vault.ts           # Core Vault class (init, snapshot, history, diff, rollback)
+│   │   │   ├── tracker.ts         # Core Tracker class (init, snapshot, history, diff, rollback)
 │   │   │   ├── store/git-store.ts # isomorphic-git with gitdir separation
 │   │   │   ├── watcher.ts         # chokidar + debounce + lockfile
 │   │   │   ├── config.ts          # Layered config with sensitive field enforcement
@@ -267,9 +275,9 @@ mindkeeper/
 
 ### v0.3 — Cloud & Sync
 
-- [ ] **Remote backup** — Push your vault to a GitHub/GitLab private repo
-- [ ] **Multi-device sync** — Pull/push vault history between machines
-- [ ] **Export & share** — Portable vault bundles for sharing agent configurations
+- [ ] **Remote backup** — Push your history to a GitHub/GitLab private repo
+- [ ] **Multi-device sync** — Pull/push history between machines
+- [ ] **Export & share** — Portable history bundles for sharing agent configurations
 
 ### v0.4 — Smarter Automation
 
@@ -282,7 +290,7 @@ mindkeeper/
 
 - [ ] **Branching** — Experiment with personality variations on separate branches
 - [ ] **Merge** — Combine the best parts of different agent configurations
-- [ ] **Vault marketplace** — Discover and import community-shared agent configurations
+- [ ] **Mindkeeper marketplace** — Discover and import community-shared agent's mind
 
 ## Contributing
 

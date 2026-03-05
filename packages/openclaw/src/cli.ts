@@ -1,8 +1,8 @@
-import type { Vault } from "mindkeeper";
+import type { Tracker } from "mindkeeper";
 
-export function registerVaultCli(
+export function registerTrackerCli(
   api: { registerCli?(registrar: (program: unknown) => void): void },
-  vault: Vault,
+  tracker: Tracker,
 ): void {
   if (!api.registerCli) return;
 
@@ -11,17 +11,17 @@ export function registerVaultCli(
       command(name: string): CommandBuilder;
     };
 
-    const vaultCmd = cmd.command("mind");
-    addSubcommand(vaultCmd, "status", "Show vault status", async () => {
-      const status = await vault.status();
+    const mindCmd = cmd.command("mind");
+    addSubcommand(mindCmd, "status", "Show tracking status", async () => {
+      const status = await tracker.status();
       console.log(`Workspace: ${status.workDir}`);
       console.log(`Pending changes: ${status.pendingChanges.length}`);
       console.log(`Named snapshots: ${status.snapshots.length}`);
     });
 
-    addSubcommand(vaultCmd, "history [file]", "View change history", async (...args: unknown[]) => {
+    addSubcommand(mindCmd, "history [file]", "View change history", async (...args: unknown[]) => {
       const file = args[0] as string | undefined;
-      const commits = await vault.history({ file, limit: 20 });
+      const commits = await tracker.history({ file, limit: 20 });
       if (commits.length === 0) {
         console.log("No history found.");
         return;
@@ -33,12 +33,12 @@ export function registerVaultCli(
     });
 
     addSubcommand(
-      vaultCmd,
+      mindCmd,
       "snapshot [name]",
       "Create a named snapshot",
       async (...args: unknown[]) => {
         const name = args[0] as string | undefined;
-        const commit = await vault.snapshot({ name });
+        const commit = await tracker.snapshot({ name });
         console.log(`Snapshot created: ${commit.oid.slice(0, 8)} ${commit.message}`);
         if (name) console.log(`Tagged as: ${name}`);
       },

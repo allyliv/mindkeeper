@@ -1,19 +1,19 @@
 import { watch, type FSWatcher } from "chokidar";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
-import type { Vault } from "./vault.js";
+import type { Tracker } from "./tracker.js";
 
 const LOCKFILE_NAME = "watcher.lock";
 
 export interface WatcherOptions {
-  vault: Vault;
+  tracker: Tracker;
   debounceMs?: number;
   onSnapshot?: (commit: { oid: string; message: string }) => void;
   onError?: (error: Error) => void;
 }
 
-export class VaultWatcher {
-  private vault: Vault;
+export class Watcher {
+  private tracker: Tracker;
   private debounceMs: number;
   private watcher: FSWatcher | null = null;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -23,9 +23,9 @@ export class VaultWatcher {
   private onError?: WatcherOptions["onError"];
 
   constructor(options: WatcherOptions) {
-    this.vault = options.vault;
-    this.debounceMs = options.debounceMs ?? options.vault.getConfig().snapshot.debounceMs;
-    this.lockfilePath = path.join(options.vault.gitDir, LOCKFILE_NAME);
+    this.tracker = options.tracker;
+    this.debounceMs = options.debounceMs ?? options.tracker.getConfig().snapshot.debounceMs;
+    this.lockfilePath = path.join(options.tracker.gitDir, LOCKFILE_NAME);
     this.onSnapshot = options.onSnapshot;
     this.onError = options.onError;
   }
@@ -33,17 +33,17 @@ export class VaultWatcher {
   async start(): Promise<void> {
     await this.acquireLock();
 
-    const config = this.vault.getConfig();
+    const config = this.tracker.getConfig();
     const watchPaths = config.tracking.include.map((pattern) =>
-      path.join(this.vault.workDir, pattern),
+      path.join(this.tracker.workDir, pattern),
     );
 
     this.watcher = watch(watchPaths, {
       ignoreInitial: true,
       persistent: true,
       ignored: [
-        path.join(this.vault.workDir, ".mindkeeper/**"),
-        path.join(this.vault.workDir, ".git/**"),
+        path.join(this.tracker.workDir, ".mindkeeper/**"),
+        path.join(this.tracker.workDir, ".git/**"),
       ],
     });
 
@@ -72,7 +72,7 @@ export class VaultWatcher {
   }
 
   private handleChange(filePath: string): void {
-    const relative = path.relative(this.vault.workDir, filePath);
+    const relative = path.relative(this.tracker.workDir, filePath);
     this.pendingChanges.add(relative);
 
     if (this.debounceTimer) {
@@ -87,12 +87,11 @@ export class VaultWatcher {
   private async flush(): Promise<void> {
     if (this.pendingChanges.size === 0) return;
 
-    const changes = [...this.pendingChanges];
     this.pendingChanges.clear();
     this.debounceTimer = null;
 
     try {
-      const commit = await this.vault.autoSnapshot();
+      const commit = await this.tracker.autoSnapshot();
       if (commit) {
         this.onSnapshot?.({ oid: commit.oid, message: commit.message });
       }

@@ -3,7 +3,7 @@ import path from "node:path";
 import { minimatch } from "minimatch";
 import { IsomorphicGitStore } from "./store/git-store.js";
 import type { CommitInfo, FileStatusEntry } from "./store/types.js";
-import { loadConfig, getDefaultConfig, type VaultConfig } from "./config.js";
+import { loadConfig, getDefaultConfig, type TrackerConfig } from "./config.js";
 import { computeDiff, type DiffResult } from "./diff.js";
 import { generateTemplateMessage } from "./message/template.js";
 import { generateLlmMessage, type LlmProvider } from "./message/llm.js";
@@ -11,14 +11,14 @@ import { generateLlmMessage, type LlmProvider } from "./message/llm.js";
 const ALWAYS_EXCLUDED = [".mindkeeper/**", ".git/**"];
 const GITDIR_NAME = ".mindkeeper";
 
-export interface VaultOptions {
+export interface TrackerOptions {
   workDir: string;
   gitDir?: string;
-  config?: VaultConfig;
+  config?: TrackerConfig;
   llmProvider?: LlmProvider;
 }
 
-export interface VaultStatus {
+export interface TrackerStatus {
   initialized: boolean;
   workDir: string;
   gitDir: string;
@@ -49,14 +49,14 @@ export interface RollbackOptions {
   to: string;
 }
 
-export class Vault {
+export class Tracker {
   private store: IsomorphicGitStore;
-  private config: VaultConfig;
+  private config: TrackerConfig;
   private llmProvider?: LlmProvider;
   readonly workDir: string;
   readonly gitDir: string;
 
-  constructor(options: VaultOptions) {
+  constructor(options: TrackerOptions) {
     this.workDir = path.resolve(options.workDir);
     this.gitDir = options.gitDir
       ? path.resolve(options.gitDir)
@@ -172,7 +172,7 @@ export class Vault {
     };
   }
 
-  async status(): Promise<VaultStatus> {
+  async status(): Promise<TrackerStatus> {
     let initialized = false;
     try {
       await this.resolveHead();
@@ -239,7 +239,7 @@ export class Vault {
     };
   }
 
-  getConfig(): VaultConfig {
+  getConfig(): TrackerConfig {
     return this.config;
   }
 

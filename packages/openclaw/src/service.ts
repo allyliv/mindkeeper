@@ -1,4 +1,4 @@
-import { Vault, VaultWatcher } from "mindkeeper";
+import { Tracker, Watcher } from "mindkeeper";
 
 interface PluginService {
   name: string;
@@ -14,17 +14,17 @@ interface PluginApi {
   };
 }
 
-export function createWatcherService(vault: Vault, api: PluginApi): PluginService {
-  let watcher: VaultWatcher | null = null;
+export function createWatcherService(tracker: Tracker, api: PluginApi): PluginService {
+  let watcher: Watcher | null = null;
 
   return {
     name: "mindkeeper-watcher",
 
     async start() {
-      await vault.init();
+      await tracker.init();
 
-      watcher = new VaultWatcher({
-        vault,
+      watcher = new Watcher({
+        tracker,
         onSnapshot: (commit) => {
           api.log?.info?.(
             `[mindkeeper] Auto-snapshot ${commit.oid.slice(0, 8)}: ${commit.message}`,
@@ -37,7 +37,7 @@ export function createWatcherService(vault: Vault, api: PluginApi): PluginServic
 
       await watcher.start();
       api.log?.info?.(
-        `[mindkeeper] Watching ${vault.workDir} (debounce: ${vault.getConfig().snapshot.debounceMs}ms)`,
+        `[mindkeeper] Watching ${tracker.workDir} (debounce: ${tracker.getConfig().snapshot.debounceMs}ms)`,
       );
     },
 

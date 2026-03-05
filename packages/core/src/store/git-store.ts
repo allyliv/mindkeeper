@@ -9,7 +9,7 @@ import type {
   StoreOptions,
 } from "./types.js";
 
-const DEFAULT_AUTHOR = { name: "mindkeeper", email: "vault@local" };
+const DEFAULT_AUTHOR = { name: "mindkeeper", email: "tracker@local" };
 
 export class IsomorphicGitStore implements GitStore {
   private readonly workDir: string;
