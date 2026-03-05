@@ -20,7 +20,7 @@ describe("loadConfig", () => {
 
     expect(config.tracking.include).toContain("AGENTS.md");
     expect(config.tracking.include).toContain("SOUL.md");
-    expect(config.snapshot.debounceMs).toBe(60_000);
+    expect(config.snapshot.debounceMs).toBe(30_000);
     expect(config.commitMessage.mode).toBe("template");
   });
 

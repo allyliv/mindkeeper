@@ -45,7 +45,7 @@ const DEFAULT_CONFIG: VaultConfig = {
     exclude: ["BOOTSTRAP.md", "canvas/**"],
   },
   snapshot: {
-    debounceMs: 60_000,
+    debounceMs: 30_000,
   },
   commitMessage: {
     mode: "template",

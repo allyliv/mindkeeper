@@ -29,7 +29,7 @@
           "debounceMs": {
             "type": "number",
             "description": "Debounce interval for auto-snapshots (ms)",
-            "default": 60000
+            "default": 30000
           }
         }
       },
@@ -58,7 +58,7 @@
     },
     "snapshot.debounceMs": {
       "label": "Auto-snapshot interval (ms)",
-      "placeholder": "60000"
+      "placeholder": "30000"
     },
     "commitMessage.mode": {
       "label": "Commit message mode"

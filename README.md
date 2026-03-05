@@ -177,13 +177,13 @@ All tracking patterns are [fully configurable](#configuration).
 ### Auto-Snapshot Flow
 
 ```
-  File changed → Queue change → [60s debounce] → Stage files → Generate message → Commit
+  File changed → Queue change → [30s debounce] → Stage files → Generate message → Commit
                       ↑                                               │
                  More changes reset                          Template or LLM
                    the timer                                   summary
 ```
 
-Changes are batched with a 60-second debounce window. If you edit `SOUL.md` five times in a minute, only one snapshot is created with the final state. A lockfile mechanism prevents duplicate watchers.
+Changes are batched with a 30-second debounce window. If you edit `SOUL.md` multiple times within 30 seconds, only one snapshot is created with the final state. A lockfile mechanism prevents duplicate watchers.
 
 ## Configuration
 
@@ -202,7 +202,7 @@ This file is tracked by the vault and safe to share. Place it in your workspace 
     "exclude": ["BOOTSTRAP.md", "canvas/**"]
   },
   "snapshot": {
-    "debounceMs": 60000
+    "debounceMs": 30000
   },
   "commitMessage": {
     "mode": "template"
