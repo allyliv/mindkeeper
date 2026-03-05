@@ -1,6 +1,6 @@
 {
   "name": "mindkeeper-openclaw",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "OpenClaw plugin for mindkeeper: auto-snapshot, diff, and rollback for agent context files",
   "keywords": [
     "openclaw",
@@ -42,7 +42,7 @@
     "extensions": ["./dist/index.js"]
   },
   "dependencies": {
-    "mindkeeper": "workspace:*"
+    "mindkeeper": "^0.2.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",
