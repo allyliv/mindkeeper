@@ -13,13 +13,13 @@
     "mindkeeper",
     "openclaw"
   ],
-  "homepage": "https://github.com/your-org/mindkeeper#readme",
+  "homepage": "https://github.com/seekcontext/mindkeeper#readme",
   "bugs": {
-    "url": "https://github.com/your-org/mindkeeper/issues"
+    "url": "https://github.com/seekcontext/mindkeeper/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/mindkeeper.git",
+    "url": "https://github.com/seekcontext/mindkeeper.git",
     "directory": "packages/core"
   },
   "license": "MIT",
