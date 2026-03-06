@@ -2,6 +2,7 @@
   "id": "mindkeeper-openclaw",
   "name": "Mindkeeper",
   "description": "Time machine for your AI's brain. Auto-snapshots every change to agent context files (AGENTS.md, SOUL.md, MEMORY.md, skills, etc.) with full history, visual diffs, and one-command rollback.",
+  "tools": ["mind_status", "mind_history", "mind_diff", "mind_rollback", "mind_snapshot"],
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
