@@ -2,10 +2,6 @@
 name: mindkeeper
 description: Version control for agent context files — view history, compare versions, and rollback changes
 version: 1.0.0
-metadata:
-  openclaw:
-    requires:
-      config: ["workspace.dir"]
 ---
 
 # Mindkeeper — Version Control for Agent Context
