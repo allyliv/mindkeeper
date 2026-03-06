@@ -31,7 +31,7 @@ interface OpenClawPluginApi {
   pluginConfig?: Record<string, unknown>;
   getWorkspaceDir?(): string;
   registerTool?(tool: PluginTool): void;
-  registerCli?(registrar: (program: unknown) => void): void;
+  registerCli?(registrar: (ctx: unknown) => void, opts?: { commands?: string[] }): void;
   registerService?(service: PluginService): void;
   registerHook?(events: string[], handler: (...args: unknown[]) => void): void;
   log?: {

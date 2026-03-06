@@ -7,50 +7,8 @@ function getTracker(ref: { current: Tracker | null }): Tracker {
   return ref.current;
 }
 
-export function registerTrackerCli(
-  api: { registerCli?(registrar: (program: unknown) => void): void },
-  trackerRef: { current: Tracker | null },
-): void {
-  if (!api.registerCli) return;
-
-  api.registerCli((program: unknown) => {
-    const cmd = program as {
-      command(name: string): CommandBuilder;
-    };
-
-    const mindCmd = cmd.command("mind");
-    addSubcommand(mindCmd, "status", "Show tracking status", async () => {
-      const status = await getTracker(trackerRef).status();
-      console.log(`Workspace: ${status.workDir}`);
-      console.log(`Pending changes: ${status.pendingChanges.length}`);
-      console.log(`Named snapshots: ${status.snapshots.length}`);
-    });
-
-    addSubcommand(mindCmd, "history [file]", "View change history", async (...args: unknown[]) => {
-      const file = args[0] as string | undefined;
-      const commits = await getTracker(trackerRef).history({ file, limit: 20 });
-      if (commits.length === 0) {
-        console.log("No history found.");
-        return;
-      }
-      for (const c of commits) {
-        const date = c.date.toISOString().replace("T", " ").slice(0, 19);
-        console.log(`${c.oid.slice(0, 8)}  ${date}  ${c.message}`);
-      }
-    });
-
-    addSubcommand(
-      mindCmd,
-      "snapshot [name]",
-      "Create a named snapshot",
-      async (...args: unknown[]) => {
-        const name = args[0] as string | undefined;
-        const commit = await getTracker(trackerRef).snapshot({ name });
-        console.log(`Snapshot created: ${commit.oid.slice(0, 8)} ${commit.message}`);
-        if (name) console.log(`Tagged as: ${name}`);
-      },
-    );
-  });
+interface CliContext {
+  program: CommandBuilder;
 }
 
 interface CommandBuilder {
@@ -59,11 +17,52 @@ interface CommandBuilder {
   action(fn: (...args: unknown[]) => Promise<void>): CommandBuilder;
 }
 
-function addSubcommand(
-  parent: CommandBuilder,
-  name: string,
-  description: string,
-  handler: (...args: unknown[]) => Promise<void>,
+export function registerTrackerCli(
+  api: { registerCli?(registrar: (ctx: CliContext) => void, opts?: { commands?: string[] }): void },
+  trackerRef: { current: Tracker | null },
 ): void {
-  parent.command(name).description(description).action(handler);
+  if (!api.registerCli) return;
+
+  api.registerCli(
+    (ctx: CliContext) => {
+      const mindCmd = ctx.program.command("mind").description("mindkeeper version control");
+
+      mindCmd
+        .command("status")
+        .description("Show tracking status")
+        .action(async () => {
+          const status = await getTracker(trackerRef).status();
+          console.log(`Workspace: ${status.workDir}`);
+          console.log(`Pending changes: ${status.pendingChanges.length}`);
+          console.log(`Named snapshots: ${status.snapshots.length}`);
+        });
+
+      mindCmd
+        .command("history [file]")
+        .description("View change history")
+        .action(async (...args: unknown[]) => {
+          const file = args[0] as string | undefined;
+          const commits = await getTracker(trackerRef).history({ file, limit: 20 });
+          if (commits.length === 0) {
+            console.log("No history found.");
+            return;
+          }
+          for (const c of commits) {
+            const date = c.date.toISOString().replace("T", " ").slice(0, 19);
+            console.log(`${c.oid.slice(0, 8)}  ${date}  ${c.message}`);
+          }
+        });
+
+      mindCmd
+        .command("snapshot [name]")
+        .description("Create a named snapshot")
+        .action(async (...args: unknown[]) => {
+          const name = args[0] as string | undefined;
+          const commit = await getTracker(trackerRef).snapshot({ name });
+          console.log(`Snapshot created: ${commit.oid.slice(0, 8)} ${commit.message}`);
+          if (name) console.log(`Tagged as: ${name}`);
+        });
+    },
+    { commands: ["mind"] },
+  );
 }
