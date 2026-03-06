@@ -50,7 +50,7 @@ mindkeeper is built as a first-class OpenClaw plugin. Install it once, and your 
 openclaw plugins install mindkeeper-openclaw
 ```
 
-That's it. The plugin auto-starts a background watcher when your Gateway launches. Every change to your agent context files is tracked automatically.
+That's it. The plugin auto-starts a background watcher when your Gateway launches. Every change to your agent context files is tracked automatically. **Tools are enabled on install** — restart the gateway once and you're done.
 
 > **Requirements:** Node.js ≥ 22, OpenClaw with Gateway running.
 

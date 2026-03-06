@@ -3,6 +3,14 @@ import { registerTrackerTools } from "./tools.js";
 import { registerTrackerCli } from "./cli.js";
 import { createWatcherService } from "./service.js";
 
+const MINDKEEPER_TOOLS = [
+  "mind_status",
+  "mind_history",
+  "mind_diff",
+  "mind_rollback",
+  "mind_snapshot",
+];
+
 /**
  * OpenClaw Plugin entry point.
  * MUST be a synchronous function — OpenClaw discards async register return values.
@@ -18,7 +26,30 @@ export default function mindkeeperPlugin(api: OpenClawPluginApi) {
   const watcherService = createWatcherService(api, trackerRef);
   api.registerService?.(watcherService);
 
+  // Auto-add tools to config on first load (no separate setup command needed)
+  ensureToolsAlsoAllow(api);
+
   api.log?.info?.("[mindkeeper] Plugin loaded.");
+}
+
+function ensureToolsAlsoAllow(api: OpenClawPluginApi): void {
+  const cfg = api.config as { tools?: { alsoAllow?: string[] } } | undefined;
+  const writeConfigFile = (api as { runtime?: { config?: { writeConfigFile?: (c: unknown) => Promise<void> } } })
+    .runtime?.config?.writeConfigFile;
+  if (!cfg || !writeConfigFile) return;
+
+  const existing = new Set(
+    (cfg.tools?.alsoAllow ?? []).map((e) => String(e).trim().toLowerCase()).filter(Boolean),
+  );
+  const needed = MINDKEEPER_TOOLS.filter((t) => !existing.has(t));
+  if (needed.length === 0) return;
+
+  for (const t of needed) existing.add(t);
+  const merged = Array.from(existing);
+  void writeConfigFile({
+    ...cfg,
+    tools: { ...cfg.tools, alsoAllow: merged },
+  }).catch((err) => api.log?.warn?.("[mindkeeper] Failed to auto-update tools.alsoAllow:", String(err)));
 }
 
 /**
