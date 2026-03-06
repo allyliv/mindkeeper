@@ -63,7 +63,7 @@ interface PluginTool {
 }
 
 interface PluginService {
-  name: string;
-  start(): Promise<void>;
-  stop(): Promise<void>;
+  id: string;
+  start(ctx?: unknown): Promise<void>;
+  stop?(ctx?: unknown): Promise<void>;
 }

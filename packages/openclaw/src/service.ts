@@ -1,9 +1,9 @@
 import { Tracker, Watcher } from "mindkeeper";
 
 interface PluginService {
-  name: string;
-  start(): Promise<void>;
-  stop(): Promise<void>;
+  id: string;
+  start(ctx?: unknown): Promise<void>;
+  stop?(ctx?: unknown): Promise<void>;
 }
 
 interface PluginApi {
@@ -18,7 +18,7 @@ export function createWatcherService(tracker: Tracker, api: PluginApi): PluginSe
   let watcher: Watcher | null = null;
 
   return {
-    name: "mindkeeper-watcher",
+    id: "mindkeeper-watcher",
 
     async start() {
       await tracker.init();
