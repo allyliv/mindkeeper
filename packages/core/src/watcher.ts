@@ -104,16 +104,23 @@ export class Watcher {
     try {
       const content = await fsPromises.readFile(this.lockfilePath, "utf-8");
       const pid = parseInt(content.trim(), 10);
-      if (!isNaN(pid) && isProcessRunning(pid)) {
-        throw new Error(
-          `Another watcher is already running (PID: ${pid}). ` +
-            `Stop it first or remove ${this.lockfilePath} if the process is dead.`,
-        );
+      if (!isNaN(pid)) {
+        // Same PID = stale lock from previous in-process restart (e.g. Gateway SIGUSR1)
+        if (pid === process.pid) {
+          // Reclaim: remove stale lock and proceed
+        } else if (isProcessRunning(pid)) {
+          throw new Error(
+            `Another watcher is already running (PID: ${pid}). ` +
+              `Stop it first or remove ${this.lockfilePath} if the process is dead.`,
+          );
+        }
+        // If pid != process.pid and process is dead, fall through to write our lock
       }
     } catch (err) {
       if (err instanceof Error && err.message.includes("Another watcher")) {
         throw err;
       }
+      // ENOENT or other read error: no lock file, proceed
     }
 
     await fsPromises.mkdir(path.dirname(this.lockfilePath), { recursive: true });

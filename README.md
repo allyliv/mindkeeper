@@ -306,7 +306,8 @@ cd packages/core && pnpm test
 
 ## Publishing
 
-See [PUBLISHING.md](./PUBLISHING.md) for the full release process.
+- **npm packages** — See [PUBLISHING.md](./PUBLISHING.md) for the full release process.
+- **ClawHub skill** — See [CLAWHUB_PUBLISH.md](./CLAWHUB_PUBLISH.md) for publishing the mindkeeper skill to [clawhub.ai](https://clawhub.ai).
 
 ```bash
 # Publish both packages in order

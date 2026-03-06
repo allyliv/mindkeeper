@@ -1,0 +1,12 @@
+{
+  "name": "Mindkeeper",
+  "tagline": "Time Machine for Your AI's Brain",
+  "description": "Time Machine for Your AI's Brain — version control for agent context files. Every change to AGENTS.md, SOUL.md, MEMORY.md, skills, and other context files is automatically tracked. Your AI can browse history, compare versions with diff, create named checkpoints, and roll back any file to any previous state.\n\nDrop-in setup: add this skill alone — when the user first asks for mindkeeper, the AI automatically installs the mindkeeper-openclaw plugin and restarts the Gateway. No manual install or restart required.\n\nUse this skill when the user asks about changes, history, or versions of their agent context files. The AI learns to use mind_status, mind_history, mind_diff, mind_rollback, and mind_snapshot tools.",
+  "category": "productivity",
+  "tags": ["version-control", "agent", "history", "rollback", "snapshot", "diff", "openclaw"],
+  "version": "1.1.0",
+  "license": "MIT",
+  "pricing": "free",
+  "support_url": "https://github.com/seekcontext/mindkeeper/issues",
+  "homepage": "https://github.com/seekcontext/mindkeeper"
+}
