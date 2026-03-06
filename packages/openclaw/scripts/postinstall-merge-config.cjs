@@ -1,5 +1,7 @@
 /**
- * Postinstall: merge mindkeeper tools into OpenClaw config.tools.alsoAllow.
+ * Postinstall: merge mindkeeper tools into OpenClaw config.
+ * - If tools.allow exists: merge into tools.allow (allow and alsoAllow are mutually exclusive).
+ * - Else: merge into tools.alsoAllow.
  * Runs during plugin install so a single gateway restart is enough.
  */
 const fs = require("node:fs");
@@ -51,14 +53,19 @@ function run() {
     return;
   }
 
+  const allow = cfg.tools?.allow ?? [];
+  const alsoAllow = cfg.tools?.alsoAllow ?? [];
+  const target = allow.length > 0 ? allow : alsoAllow;
+  const key = allow.length > 0 ? "allow" : "alsoAllow";
+
   const existing = new Set(
-    (cfg.tools?.alsoAllow ?? []).map((e) => String(e).trim().toLowerCase()).filter(Boolean),
+    target.map((e) => String(e).trim().toLowerCase()).filter(Boolean),
   );
   const needed = TOOLS.filter((t) => !existing.has(t));
   if (needed.length === 0) return;
 
   for (const t of needed) existing.add(t);
-  cfg.tools = { ...cfg.tools, alsoAllow: Array.from(existing) };
+  cfg.tools = { ...cfg.tools, [key]: Array.from(existing) };
 
   try {
     fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf-8");

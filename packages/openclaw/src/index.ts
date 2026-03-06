@@ -27,19 +27,24 @@ export default function mindkeeperPlugin(api: OpenClawPluginApi) {
   api.registerService?.(watcherService);
 
   // Auto-add tools to config on first load (no separate setup command needed)
-  ensureToolsAlsoAllow(api);
+  ensureToolsInConfig(api);
 
   api.log?.info?.("[mindkeeper] Plugin loaded.");
 }
 
-function ensureToolsAlsoAllow(api: OpenClawPluginApi): void {
-  const cfg = api.config as { tools?: { alsoAllow?: string[] } } | undefined;
+function ensureToolsInConfig(api: OpenClawPluginApi): void {
+  const cfg = api.config as { tools?: { allow?: string[]; alsoAllow?: string[] } } | undefined;
   const writeConfigFile = (api as { runtime?: { config?: { writeConfigFile?: (c: unknown) => Promise<void> } } })
     .runtime?.config?.writeConfigFile;
   if (!cfg || !writeConfigFile) return;
 
+  const allow = cfg.tools?.allow ?? [];
+  const alsoAllow = cfg.tools?.alsoAllow ?? [];
+  const target = allow.length > 0 ? allow : alsoAllow;
+  const key = allow.length > 0 ? "allow" : "alsoAllow";
+
   const existing = new Set(
-    (cfg.tools?.alsoAllow ?? []).map((e) => String(e).trim().toLowerCase()).filter(Boolean),
+    target.map((e) => String(e).trim().toLowerCase()).filter(Boolean),
   );
   const needed = MINDKEEPER_TOOLS.filter((t) => !existing.has(t));
   if (needed.length === 0) return;
@@ -48,8 +53,8 @@ function ensureToolsAlsoAllow(api: OpenClawPluginApi): void {
   const merged = Array.from(existing);
   void writeConfigFile({
     ...cfg,
-    tools: { ...cfg.tools, alsoAllow: merged },
-  }).catch((err) => api.log?.warn?.("[mindkeeper] Failed to auto-update tools.alsoAllow:", String(err)));
+    tools: { ...cfg.tools, [key]: merged },
+  }).catch((err) => api.log?.warn?.(`[mindkeeper] Failed to auto-update tools.${key}:`, String(err)));
 }
 
 /**
