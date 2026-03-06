@@ -41,7 +41,7 @@ interface OpenClawPluginApi {
   config?: unknown;
   pluginConfig?: Record<string, unknown>;
   getWorkspaceDir?(): string;
-  registerTool?(tool: PluginTool, opts?: Record<string, unknown>): void;
+  registerTool?(tool: PluginTool): void;
   registerCli?(registrar: (program: unknown) => void): void;
   registerService?(service: PluginService): void;
   registerHook?(events: string[], handler: (...args: unknown[]) => void): void;
@@ -54,9 +54,10 @@ interface OpenClawPluginApi {
 
 interface PluginTool {
   name: string;
+  label: string;
   description: string;
-  parameters: Record<string, unknown>;
-  handler(args: Record<string, unknown>): Promise<unknown>;
+  parameters: unknown;
+  execute(toolCallId: string, params: Record<string, unknown>): Promise<unknown>;
 }
 
 interface PluginService {

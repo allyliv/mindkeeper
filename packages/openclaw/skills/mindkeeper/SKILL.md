@@ -1,41 +1,93 @@
 ---
 name: mindkeeper
 description: Version control for agent context files — view history, compare versions, and rollback changes
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Mindkeeper — Version Control for Agent Context
 
-Use the vault tools when the user asks about changes, history, or versions of their agent context files (AGENTS.md, SOUL.md, USER.md, IDENTITY.md, TOOLS.md, MEMORY.md, memory/, skills/).
+Use mindkeeper tools when the user asks about changes, history, or versions of their agent context files (AGENTS.md, SOUL.md, USER.md, IDENTITY.md, TOOLS.md, MEMORY.md, memory/, skills/).
 
 ## Available Tools
 
-- **mind_history** — View change history of context files
-- **mind_diff** — Compare two versions of a file
-- **mind_rollback** — Restore a file to a previous version (always preview first)
-- **mind_snapshot** — Create a named checkpoint before major changes
-- **mind_status** — Show current tracking status
+| Tool | Purpose |
+|------|---------|
+| `mind_status` | Show what files are tracked and whether there are unsaved changes |
+| `mind_history` | Browse the change log for one file or all files |
+| `mind_diff` | Compare any two versions of a file side-by-side |
+| `mind_rollback` | Restore a file to a previous version (always preview first) |
+| `mind_snapshot` | Save a named checkpoint before making significant changes |
 
 ## When to Use
 
-Use these tools when the user:
-- Asks what changed in their agent configuration ("what changed in SOUL.md?")
-- Wants to compare versions ("show me the diff from last week")
-- Wants to undo a change ("rollback AGENTS.md to yesterday")
-- Wants to save a checkpoint ("save a snapshot called stable-v1")
-- Asks about the state of their agent context files
+| User says… | Action |
+|-----------|--------|
+| "What changed in SOUL.md?" | `mind_history` with `file: "SOUL.md"` |
+| "Show me the diff from last week" | `mind_history` to find the commit, then `mind_diff` |
+| "Undo that change" / "Roll back AGENTS.md" | Full rollback procedure (see below) |
+| "Save a checkpoint before I experiment" | `mind_snapshot` with a descriptive name |
+| "Is mindkeeper tracking my files?" | `mind_status` |
+| "What does my history look like?" | `mind_history` without a file filter |
 
-## Rollback Procedure
+## Tool Usage Guide
 
-Always follow this sequence for rollbacks:
-1. Call `mind_history` to find the target version
-2. Call `mind_rollback` with `preview=true` to show the user what will change
-3. Only after user confirms, call `mind_rollback` with `preview=false`
-4. After successful rollback, tell the user to run `/new` to apply changes
+### mind_status
+Call this first if you're unsure whether mindkeeper is initialized or what files are being tracked.
+```
+mind_status → { initialized, workDir, pendingChanges, snapshots }
+```
+
+### mind_history
+Returns a list of commits with short hash, date, and message.
+- `file` (optional): filter to a specific file path, e.g. `"SOUL.md"`
+- `limit` (optional): number of entries to return (default 10, increase for longer searches)
+
+```
+mind_history({ file: "SOUL.md", limit: 20 })
+→ { count, entries: [{ oid, date, message }] }
+```
+
+### mind_diff
+Compares two versions of a file. `from` and `to` are short or full commit hashes from `mind_history`.
+- Omit `to` to compare `from` against the current version (HEAD).
+
+```
+mind_diff({ file: "SOUL.md", from: "a1b2c3d4" })
+→ { file, from, to, additions, deletions, unified }
+```
+
+### mind_snapshot
+Creates a named checkpoint of the current state of all tracked files. Use before risky changes.
+- `name`: short identifier, e.g. `"stable-v2"` or `"before-experiment"`
+- `message` (optional): longer description
+
+```
+mind_snapshot({ name: "stable-v2", message: "Personality tuned, rules finalized" })
+→ { success, snapshot, commit: { oid, message } }
+```
+
+### mind_rollback
+**Always use the two-step procedure.** Never skip the preview.
+
+**Step 1 — Preview:**
+```
+mind_rollback({ file: "SOUL.md", to: "a1b2c3d4", preview: true })
+→ { preview: true, diff: { unified, additions, deletions }, instruction }
+```
+Show the diff to the user and ask for confirmation.
+
+**Step 2 — Execute (only after user confirms):**
+```
+mind_rollback({ file: "SOUL.md", to: "a1b2c3d4", preview: false })
+→ { preview: false, success: true, commit: { oid, message } }
+```
+After success, tell the user: **"Run `/new` to apply the changes to your current session."**
 
 ## Important Notes
 
-- Rollback only affects the specified file, not all files
-- Every rollback is recorded as a new commit (can be undone)
-- Auto-snapshots happen in the background; the user does not need to manually save
-- Named snapshots (via mind_snapshot) are useful before significant personality or rule changes
+- **Rollback is per-file** — it only restores the specified file, not all files at once
+- **Rollbacks are non-destructive** — every rollback creates a new commit, so it can itself be undone
+- **Auto-snapshots run in the background** — the user doesn't need to manually save; mindkeeper captures every change automatically
+- **Named snapshots are the safety net** — encourage users to snapshot before major personality or rule changes
+- **If history is empty** — mindkeeper may not have initialized yet, or no changes have been made since install. Call `mind_status` to check.
+- **Commit hashes** — always use the `oid` field from `mind_history` results. Short 8-character hashes are fine.

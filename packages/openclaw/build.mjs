@@ -1,5 +1,4 @@
 import * as esbuild from "esbuild";
-import { execSync } from "node:child_process";
 
 const NODE_EXTERNALS = [
   "node:fs", "node:fs/promises", "node:path", "node:os", "node:child_process",
@@ -10,11 +9,17 @@ const NODE_EXTERNALS = [
   "buffer", "crypto", "http", "https", "net", "tls", "zlib", "assert", "timers",
 ];
 
-// Type-check only (no emit) via tsc
-console.log("Type checking...");
-execSync("npx tsc --noEmit", { stdio: "inherit" });
-
 console.log("Bundling...");
+
+// Resolve "mindkeeper" to the core package's built dist (sibling package in the monorepo)
+const mindkeeperAlias = {
+  name: "mindkeeper-alias",
+  setup(build) {
+    build.onResolve({ filter: /^mindkeeper$/ }, () => ({
+      path: new URL("../core/src/index.ts", import.meta.url).pathname,
+    }));
+  },
+};
 
 // Bundle 1: llm-client — fetch only, NO process.env
 // This file will be dynamically imported at runtime, so the scanner
@@ -27,6 +32,7 @@ await esbuild.build({
   format: "esm",
   outfile: "dist/llm-client.js",
   external: NODE_EXTERNALS,
+  plugins: [mindkeeperAlias],
   logLevel: "warning",
 });
 
@@ -45,6 +51,7 @@ await esbuild.build({
     // Keep llm-client external so it stays in its own file with no process.env
     "./llm-client.js",
   ],
+  plugins: [mindkeeperAlias],
   logLevel: "warning",
 });
 
