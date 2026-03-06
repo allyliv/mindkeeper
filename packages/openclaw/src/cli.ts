@@ -1,8 +1,15 @@
 import type { Tracker } from "mindkeeper";
 
+function getTracker(ref: { current: Tracker | null }): Tracker {
+  if (!ref.current) {
+    throw new Error("mindkeeper: tracker not ready — workspace not initialized yet.");
+  }
+  return ref.current;
+}
+
 export function registerTrackerCli(
   api: { registerCli?(registrar: (program: unknown) => void): void },
-  tracker: Tracker,
+  trackerRef: { current: Tracker | null },
 ): void {
   if (!api.registerCli) return;
 
@@ -13,7 +20,7 @@ export function registerTrackerCli(
 
     const mindCmd = cmd.command("mind");
     addSubcommand(mindCmd, "status", "Show tracking status", async () => {
-      const status = await tracker.status();
+      const status = await getTracker(trackerRef).status();
       console.log(`Workspace: ${status.workDir}`);
       console.log(`Pending changes: ${status.pendingChanges.length}`);
       console.log(`Named snapshots: ${status.snapshots.length}`);
@@ -21,7 +28,7 @@ export function registerTrackerCli(
 
     addSubcommand(mindCmd, "history [file]", "View change history", async (...args: unknown[]) => {
       const file = args[0] as string | undefined;
-      const commits = await tracker.history({ file, limit: 20 });
+      const commits = await getTracker(trackerRef).history({ file, limit: 20 });
       if (commits.length === 0) {
         console.log("No history found.");
         return;
@@ -38,7 +45,7 @@ export function registerTrackerCli(
       "Create a named snapshot",
       async (...args: unknown[]) => {
         const name = args[0] as string | undefined;
-        const commit = await tracker.snapshot({ name });
+        const commit = await getTracker(trackerRef).snapshot({ name });
         console.log(`Snapshot created: ${commit.oid.slice(0, 8)} ${commit.message}`);
         if (name) console.log(`Tagged as: ${name}`);
       },

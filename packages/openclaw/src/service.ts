@@ -1,9 +1,20 @@
 import { Tracker, Watcher } from "mindkeeper";
+import type { LlmProvider } from "mindkeeper";
+
+interface ServiceContext {
+  workspaceDir?: string;
+  stateDir?: string;
+  logger?: {
+    info?(msg: string): void;
+    warn?(msg: string): void;
+    error?(msg: string): void;
+  };
+}
 
 interface PluginService {
   id: string;
-  start(ctx?: unknown): Promise<void>;
-  stop?(ctx?: unknown): Promise<void>;
+  start(ctx: ServiceContext): Promise<void>;
+  stop?(ctx: ServiceContext): Promise<void>;
 }
 
 interface PluginApi {
@@ -14,30 +25,46 @@ interface PluginApi {
   };
 }
 
-export function createWatcherService(tracker: Tracker, api: PluginApi): PluginService {
+export function createWatcherService(
+  api: PluginApi,
+  trackerRef: { current: Tracker | null },
+  llmProvider?: LlmProvider,
+): PluginService {
   let watcher: Watcher | null = null;
+
+  const log = {
+    info: (msg: string) => api.log?.info?.(msg),
+    warn: (msg: string) => api.log?.warn?.(msg),
+    error: (msg: string) => api.log?.error?.(msg),
+  };
 
   return {
     id: "mindkeeper-watcher",
 
-    async start() {
+    async start(ctx: ServiceContext) {
+      const workspaceDir = ctx.workspaceDir ?? process.env.OPENCLAW_WORKSPACE;
+      if (!workspaceDir) {
+        log.warn("[mindkeeper] No workspace directory in service context. Watcher disabled.");
+        return;
+      }
+
+      const tracker = new Tracker({ workDir: workspaceDir, llmProvider });
       await tracker.init();
+      trackerRef.current = tracker;
 
       watcher = new Watcher({
         tracker,
         onSnapshot: (commit) => {
-          api.log?.info?.(
-            `[mindkeeper] Auto-snapshot ${commit.oid.slice(0, 8)}: ${commit.message}`,
-          );
+          log.info(`[mindkeeper] Auto-snapshot ${commit.oid.slice(0, 8)}: ${commit.message}`);
         },
         onError: (err) => {
-          api.log?.error?.(`[mindkeeper] Watcher error: ${err.message}`);
+          log.error(`[mindkeeper] Watcher error: ${err.message}`);
         },
       });
 
       await watcher.start();
-      api.log?.info?.(
-        `[mindkeeper] Watching ${tracker.workDir} (debounce: ${tracker.getConfig().snapshot.debounceMs}ms)`,
+      log.info(
+        `[mindkeeper] Watching ${workspaceDir} (debounce: ${tracker.getConfig().snapshot.debounceMs}ms)`,
       );
     },
 
@@ -45,8 +72,9 @@ export function createWatcherService(tracker: Tracker, api: PluginApi): PluginSe
       if (watcher) {
         await watcher.stop();
         watcher = null;
-        api.log?.info?.("[mindkeeper] Watcher stopped.");
+        log.info("[mindkeeper] Watcher stopped.");
       }
+      trackerRef.current = null;
     },
   };
 }

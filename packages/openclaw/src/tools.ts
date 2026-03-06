@@ -9,9 +9,16 @@ interface PluginTool {
   handler(args: Record<string, unknown>): Promise<unknown>;
 }
 
+function getTracker(ref: { current: Tracker | null }): Tracker {
+  if (!ref.current) {
+    throw new Error("mindkeeper: tracker not ready — workspace not initialized yet.");
+  }
+  return ref.current;
+}
+
 export function registerTrackerTools(
   api: { registerTool?: RegisterTool },
-  tracker: Tracker,
+  trackerRef: { current: Tracker | null },
 ): void {
   if (!api.registerTool) return;
 
@@ -34,7 +41,7 @@ export function registerTrackerTools(
       },
     },
     handler: async (args) => {
-      const commits = await tracker.history({
+      const commits = await getTracker(trackerRef).history({
         file: args.file as string | undefined,
         limit: (args.limit as number | undefined) ?? 10,
       });
@@ -57,7 +64,7 @@ export function registerTrackerTools(
       required: ["file", "from"],
     },
     handler: async (args) => {
-      const result = await tracker.diff({
+      const result = await getTracker(trackerRef).diff({
         file: args.file as string,
         from: args.from as string,
         to: args.to as string | undefined,
@@ -87,6 +94,7 @@ export function registerTrackerTools(
       const file = args.file as string;
       const to = args.to as string;
       const preview = (args.preview as boolean | undefined) ?? true;
+      const tracker = getTracker(trackerRef);
 
       if (preview) {
         const diff = await tracker.diff({ file, from: to, to: "HEAD" });
@@ -122,7 +130,7 @@ export function registerTrackerTools(
       required: ["name"],
     },
     handler: async (args) => {
-      const commit = await tracker.snapshot({
+      const commit = await getTracker(trackerRef).snapshot({
         name: args.name as string,
         message: args.message as string | undefined,
       });
@@ -139,7 +147,7 @@ export function registerTrackerTools(
     description: "Show the current tracking status: tracked files, pending changes, and named snapshots.",
     parameters: { type: "object", properties: {} },
     handler: async () => {
-      const status = await tracker.status();
+      const status = await getTracker(trackerRef).status();
       return formatStatusResult(status);
     },
   });

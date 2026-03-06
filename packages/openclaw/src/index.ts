@@ -1,4 +1,4 @@
-import { Tracker, Watcher } from "mindkeeper";
+import type { Tracker } from "mindkeeper";
 import { registerTrackerTools } from "./tools.js";
 import { registerTrackerCli } from "./cli.js";
 import { createWatcherService } from "./service.js";
@@ -7,29 +7,26 @@ import { createOpenClawLlmProvider } from "./llm-provider.js";
 /**
  * OpenClaw Plugin entry point.
  * Called by OpenClaw's plugin loader with the Plugin API.
+ *
+ * The workspace directory is NOT available at plugin load time —
+ * it is only provided in service.start(ctx). We use a lazy ref so
+ * tools and CLI can be registered immediately but defer tracker
+ * creation until the service starts.
  */
 export default async function mindkeeperPlugin(api: OpenClawPluginApi) {
-  const workspaceDir = api.getWorkspaceDir?.() ?? process.env.OPENCLAW_WORKSPACE;
-  if (!workspaceDir) {
-    api.log?.warn?.("[mindkeeper] No workspace directory found. Plugin disabled.");
-    return;
-  }
-
   const llmProvider = await createOpenClawLlmProvider({
     config: api.config as Record<string, unknown> | undefined,
     pluginConfig: api.pluginConfig,
     log: api.log,
   });
 
-  const tracker = new Tracker({
-    workDir: workspaceDir,
-    llmProvider: llmProvider ?? undefined,
-  });
+  // Lazy tracker ref — populated by the watcher service on start
+  const trackerRef: { current: Tracker | null } = { current: null };
 
-  registerTrackerTools(api, tracker);
-  registerTrackerCli(api, tracker);
+  registerTrackerTools(api, trackerRef);
+  registerTrackerCli(api, trackerRef);
 
-  const watcherService = createWatcherService(tracker, api);
+  const watcherService = createWatcherService(api, trackerRef, llmProvider ?? undefined);
   api.registerService?.(watcherService);
 
   api.log?.info?.("[mindkeeper] Plugin loaded.");
