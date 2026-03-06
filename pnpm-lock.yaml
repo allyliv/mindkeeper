@@ -41,13 +41,25 @@ importers:
 
   packages/openclaw:
     dependencies:
-      mindkeeper:
-        specifier: workspace:*
-        version: link:../core
+      chokidar:
+        specifier: ^4.0.0
+        version: 4.0.3
+      diff:
+        specifier: ^7.0.0
+        version: 7.0.0
+      isomorphic-git:
+        specifier: ^1.29.0
+        version: 1.37.2
+      minimatch:
+        specifier: ^10.0.0
+        version: 10.2.4
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.13
+      esbuild:
+        specifier: ^0.27.3
+        version: 0.27.3
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
