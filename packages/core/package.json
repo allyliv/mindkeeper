@@ -34,7 +34,8 @@
     "mindkeeper": "dist/bin/mindkeeper.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc",

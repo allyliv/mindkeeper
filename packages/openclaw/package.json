@@ -26,7 +26,8 @@
     "dist",
     "skills",
     "openclaw.plugin.json",
-    "scripts/postinstall-merge-config.cjs"
+    "scripts/postinstall-merge-config.cjs",
+    "README.md"
   ],
   "scripts": {
     "build": "node build.mjs",
