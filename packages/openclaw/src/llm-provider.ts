@@ -55,7 +55,7 @@ export async function createOpenClawLlmProvider(
         .join("\n")
         .slice(0, MAX_DIFF_CHARS);
 
-      const { callLlm } = await import("./llm-client.js");
+      const { callLlm } = await import("./llm-client.cjs");
       return callLlm({
         provider: modelSpec.provider,
         model: modelSpec.model,

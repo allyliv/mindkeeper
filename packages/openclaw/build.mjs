@@ -21,35 +21,34 @@ const mindkeeperAlias = {
   },
 };
 
-// Bundle 1: llm-client — fetch only, NO process.env
-// This file will be dynamically imported at runtime, so the scanner
-// sees it as a standalone file with only network calls and no env access.
+// Bundle 1: llm-client — CJS format, fetch only, NO process.env
 await esbuild.build({
   entryPoints: ["src/llm-client.ts"],
   bundle: true,
   platform: "node",
   target: "node22",
-  format: "esm",
-  outfile: "dist/llm-client.js",
+  format: "cjs",
+  outfile: "dist/llm-client.cjs",
   external: NODE_EXTERNALS,
   plugins: [mindkeeperAlias],
   logLevel: "warning",
 });
 
-// Bundle 2: main plugin — everything except llm-client (which is dynamic import)
-// This file has process.env (from isomorphic-git, chokidar, auth-resolver)
-// but NO fetch calls (llm-client is external / dynamic import).
+// Bundle 2: main plugin — CJS format so jiti loads it synchronously.
+// jiti loads ESM via native import() which is async and causes OpenClaw to
+// see a Promise return from register(), silently dropping all tool registrations.
+// CJS is loaded synchronously by jiti, which is what OpenClaw expects.
 await esbuild.build({
   entryPoints: ["src/index.ts"],
   bundle: true,
   platform: "node",
   target: "node22",
-  format: "esm",
+  format: "cjs",
   outfile: "dist/index.js",
   external: [
     ...NODE_EXTERNALS,
     // Keep llm-client external so it stays in its own file with no process.env
-    "./llm-client.js",
+    "./llm-client.cjs",
   ],
   plugins: [mindkeeperAlias],
   logLevel: "warning",
