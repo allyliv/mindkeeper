@@ -2,7 +2,7 @@
 
 Time Machine for Your AI's Brain — version control for agent context files. This skill teaches your AI to use mindkeeper tools for history, diff, rollback, and snapshots.
 
-**Drop-in setup:** Add this skill alone — the AI will automatically install the mindkeeper-openclaw plugin and restart the Gateway when you first ask for mindkeeper capability. No manual steps required.
+**Setup:** Add this skill alone. When you first ask for mindkeeper capability, the AI will ask for your confirmation before installing the mindkeeper-openclaw plugin and restarting the Gateway. You can also install the plugin manually (see Requirements).
 
 ## What It Does
 
@@ -16,12 +16,26 @@ Time Machine for Your AI's Brain — version control for agent context files. Th
 - Node.js ≥ 22
 - OpenClaw with Gateway running
 
-The mindkeeper-openclaw plugin is installed automatically by the AI when you first use mindkeeper (see Bootstrap in SKILL.md).
+The mindkeeper-openclaw plugin provides the mind_* tools. The AI will ask for your confirmation before running `openclaw plugins install mindkeeper-openclaw` and restarting the Gateway on first use. Alternatively, install it yourself:
+
+```bash
+openclaw plugins install mindkeeper-openclaw
+# Then restart your Gateway
+```
+
+## Permissions & Why They Are Needed
+
+| Action | Purpose |
+|--------|---------|
+| `openclaw plugins install mindkeeper-openclaw` | Fetches the official plugin from npm to add mind_status, mind_history, mind_diff, mind_rollback, mind_snapshot tools |
+| Gateway restart | Loads the newly installed plugin into the running Gateway |
+
+**User consent:** The AI will not run these commands until you explicitly confirm. This ensures you control when plugins are installed and when the Gateway restarts.
 
 ## How to Use
 
 1. Install this skill: `clawhub install mindkeeper`
-2. Ask your AI in natural language (plugin install + restart happen automatically on first use):
+2. Ask your AI in natural language. On first use, the AI will ask for confirmation before installing the plugin and restarting the Gateway:
    - "What changed in SOUL.md recently?"
    - "Compare my current AGENTS.md to last week's version"
    - "Roll back SOUL.md to yesterday"

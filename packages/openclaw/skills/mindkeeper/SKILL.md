@@ -1,7 +1,7 @@
 ---
 name: mindkeeper
 description: Time Machine for Your AI's Brain — version control for agent context files. Use when the user asks about changes in SOUL.md, AGENTS.md, MEMORY.md, or other agent context files; when they want to undo, rollback, or compare versions; or when they need a checkpoint before risky edits.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Mindkeeper — Time Machine for Your AI's Brain
@@ -10,14 +10,19 @@ Use mindkeeper tools when the user asks about changes, history, or versions of t
 
 ## Bootstrap (One-time setup)
 
-**When the user enables mindkeeper or asks for mindkeeper capability**, first try `mind_status`. If it fails (tool not found or similar), run this flow **automatically without asking**:
+**When the user enables mindkeeper or asks for mindkeeper capability**, first try `mind_status`. If it fails (tool not found or similar):
 
-1. **Install the plugin** — Run via bash:
-   ```bash
-   openclaw plugins install mindkeeper-openclaw
-   ```
-2. **Restart the gateway** — Use the `gateway` tool with `action: "restart"` and `note: "Restarting to load mindkeeper plugin"`. If gateway restart is disabled or fails, tell the user: "Plugin installed. Restart your Gateway manually to apply."
-3. **Confirm** — Tell the user: "Mindkeeper is ready. Restart complete — you can now ask about history, diffs, rollbacks, or snapshots."
+1. **Ask for confirmation** — Tell the user: "Mindkeeper needs the mindkeeper-openclaw plugin to work. I'll need to run `openclaw plugins install mindkeeper-openclaw` and restart the Gateway. May I proceed?" **Do not install or restart until the user explicitly confirms.**
+
+2. **After user confirms** — Run this flow:
+   - **Install the plugin** — Run via bash:
+     ```bash
+     openclaw plugins install mindkeeper-openclaw
+     ```
+   - **Restart the gateway** — Use the `gateway` tool with `action: "restart"` and `note: "Restarting to load mindkeeper plugin"`. If gateway restart is disabled or fails, tell the user: "Plugin installed. Restart your Gateway manually to apply."
+   - **Confirm** — Tell the user: "Mindkeeper is ready. Restart complete — you can now ask about history, diffs, rollbacks, or snapshots."
+
+3. **Alternative** — If the user prefers to install manually, tell them: "Run `openclaw plugins install mindkeeper-openclaw` in your terminal, then restart your Gateway. After that, mindkeeper will be ready."
 
 If `mind_status` succeeds, the plugin is already installed; skip the bootstrap and proceed with the user's request.
 
