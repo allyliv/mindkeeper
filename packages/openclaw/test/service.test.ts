@@ -18,7 +18,7 @@ vi.mock("mindkeeper", () => {
   class Tracker {
     options: Record<string, unknown>;
     init = vi.fn().mockResolvedValue(undefined);
-    getConfig = vi.fn(() => ({ snapshot: { debounceMs: 30_000 } }));
+    getConfig = vi.fn(() => ({ snapshot: { debounceMs: 30_000 }, commitMessage: { mode: "llm" } }));
 
     constructor(options: Record<string, unknown>) {
       this.options = options;

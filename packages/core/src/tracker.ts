@@ -86,11 +86,74 @@ export class Tracker {
     await this.store.init();
     await this.ensureGitignore();
 
+    this.log?.info?.(
+      `[mindkeeper] init: commitMessage.mode=${this.config.commitMessage.mode}, llmProvider=${this.llmProvider ? "yes" : "no"}`,
+    );
+
     const changed = await this.getTrackedChangedFiles();
     if (changed.length > 0) {
-      await this.store.addFiles(changed.map((e) => e.filepath));
-      const msg = generateTemplateMessage(changed.map((e) => e.filepath));
-      await this.store.commit(msg);
+      const filesToCommit = changed.map((e) => e.filepath);
+      await this.store.addFiles(filesToCommit);
+
+      let message: string | null = null;
+
+      if (this.config.commitMessage.mode === "llm" && this.llmProvider) {
+        let headOid: string | null = null;
+        try {
+          headOid = await this.resolveHead();
+        } catch {
+          // no commits yet
+        }
+
+        if (headOid) {
+          const diffs: DiffResult[] = [];
+          for (const file of filesToCommit) {
+            try {
+              const oldContent = (await this.store.readFile(file, headOid)) ?? "";
+              let newContent: string;
+              try {
+                newContent = await fsPromises.readFile(
+                  path.join(this.workDir, file),
+                  "utf-8",
+                );
+              } catch {
+                newContent = "";
+              }
+              const d = computeDiff({
+                file,
+                fromVersion: headOid.slice(0, 8),
+                toVersion: "(staged)",
+                oldContent,
+                newContent,
+              });
+              if (d.additions > 0 || d.deletions > 0) diffs.push(d);
+            } catch {
+              // skip
+            }
+          }
+
+          if (diffs.length > 0) {
+            message = await generateLlmMessage(diffs, this.llmProvider, this.log);
+            if (message) {
+              this.log?.info?.(
+                `[mindkeeper] init: LLM-generated commit — "${message.slice(0, 50)}${message.length > 50 ? "…" : ""}"`,
+              );
+            }
+          } else {
+            this.log?.info?.("[mindkeeper] init: diffs empty (all files unchanged vs HEAD)");
+          }
+        } else {
+          this.log?.info?.("[mindkeeper] init: no HEAD yet (first commit), LLM skipped");
+        }
+      }
+
+      if (!message) {
+        message = generateTemplateMessage(filesToCommit);
+        this.log?.info?.(`[mindkeeper] init: using template — "${message}"`);
+      }
+      await this.store.commit(message);
+    } else {
+      this.log?.info?.("[mindkeeper] init: no changed files");
     }
 
     return { initialFiles: changed.map((e) => e.filepath) };
@@ -216,8 +279,13 @@ export class Tracker {
     try {
       headOid = await this.resolveHead();
     } catch {
-      // no commits yet — skip diff for message generation
+      // no commits yet
     }
+
+    this.log?.info?.(
+      `[mindkeeper] autoSnapshot: files=${filesToCommit.length}, headOid=${headOid ? headOid.slice(0, 8) : "none"}, ` +
+      `mode=${this.config.commitMessage.mode}, llmProvider=${this.llmProvider ? "yes" : "no"}`,
+    );
 
     if (headOid) {
       for (const file of filesToCommit) {
@@ -230,7 +298,7 @@ export class Tracker {
               "utf-8",
             );
           } catch {
-            newContent = ""; // file deleted
+            newContent = "";
           }
           const d = computeDiff({
             file,
@@ -242,11 +310,15 @@ export class Tracker {
           if (d.additions > 0 || d.deletions > 0) {
             diffs.push(d);
           }
-        } catch {
-          // no previous version — skip diff for message generation
+        } catch (err) {
+          this.log?.warn?.(
+            `[mindkeeper] autoSnapshot: diff failed for ${file}: ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
     }
+
+    this.log?.info?.(`[mindkeeper] autoSnapshot: computed ${diffs.length} non-empty diff(s)`);
 
     let message: string | null = null;
     let usedLlm = false;
@@ -256,32 +328,31 @@ export class Tracker {
       if (this.llmProvider) {
         message = await generateLlmMessage(diffs, this.llmProvider, this.log);
         if (message) usedLlm = true;
-        else templateReason = "LLM API call failed (check logs above for error)";
+        else templateReason = "LLM API call failed (check logs above for error details)";
       } else {
         templateReason =
-          "LLM provider not configured (no default model or API key in OpenClaw)";
+          "llmProvider is null (createOpenClawLlmProvider returned null — check startup logs)";
       }
     } else if (this.config.commitMessage.mode === "llm" && diffs.length === 0) {
-      templateReason =
-        "first commit or no diff (no previous version to compare, diffs.length=0)";
+      templateReason = headOid
+        ? `diffs empty (${filesToCommit.length} file(s) changed but no textual diff vs HEAD)`
+        : "no HEAD commit yet (first commit), cannot compute diff";
     } else {
-      templateReason = "config: commitMessage.mode is 'template'";
+      templateReason = `commitMessage.mode="${this.config.commitMessage.mode}" (not "llm")`;
     }
 
     if (!message) {
       message = generateTemplateMessage(filesToCommit);
     }
 
-    if (this.log) {
-      if (usedLlm) {
-        this.log.info?.(
-          `[mindkeeper] Commit message: LLM-generated — "${message.slice(0, 50)}${message.length > 50 ? "…" : ""}"`,
-        );
-      } else {
-        this.log.warn?.(
-          `[mindkeeper] Commit message: template — reason: ${templateReason}`,
-        );
-      }
+    if (usedLlm) {
+      this.log?.info?.(
+        `[mindkeeper] Commit message: LLM ✓ — "${message.slice(0, 60)}${message.length > 60 ? "…" : ""}"`,
+      );
+    } else {
+      this.log?.warn?.(
+        `[mindkeeper] Commit message: TEMPLATE — reason: ${templateReason}`,
+      );
     }
 
     const oid = await this.store.commit(message);

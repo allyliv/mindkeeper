@@ -53,10 +53,19 @@ export function createWatcherService(
 
       ensureWorkspaceSkillMirror(workspaceDir, { log: api.log });
 
+      log.info(
+        `[mindkeeper] Service starting: ctx.config=${ctx.config ? "present" : "missing"}, ` +
+        `pluginConfig=${api.pluginConfig ? JSON.stringify(api.pluginConfig) : "none"}`,
+      );
+
       const llmProvider = await createOpenClawLlmProvider({
         config: ctx.config as Record<string, unknown> | undefined,
         log,
       });
+
+      log.info(
+        `[mindkeeper] LLM provider: ${llmProvider ? "created successfully" : "null (will use template)"}`,
+      );
 
       const tracker = new Tracker({
         workDir: workspaceDir,
@@ -66,6 +75,10 @@ export function createWatcherService(
       });
       await tracker.init();
       trackerRef.current = tracker;
+
+      log.info(
+        `[mindkeeper] Tracker config: commitMessage.mode=${tracker.getConfig().commitMessage.mode}`,
+      );
 
       watcher = new Watcher({
         tracker,
