@@ -4,6 +4,7 @@ const mocked = vi.hoisted(() => ({
   registerTrackerTools: vi.fn(),
   registerTrackerCli: vi.fn(),
   createWatcherService: vi.fn(() => ({ id: "mindkeeper-watcher" })),
+  ensureWorkspaceSkillMirror: vi.fn(),
 }));
 
 vi.mock("../src/tools.js", () => ({
@@ -18,20 +19,27 @@ vi.mock("../src/service.js", () => ({
   createWatcherService: mocked.createWatcherService,
 }));
 
+vi.mock("../src/skill-mirror.js", () => ({
+  ensureWorkspaceSkillMirror: mocked.ensureWorkspaceSkillMirror,
+}));
+
 import mindkeeperPlugin from "../src/index.js";
 
 afterEach(() => {
   mocked.registerTrackerTools.mockClear();
   mocked.registerTrackerCli.mockClear();
   mocked.createWatcherService.mockClear();
+  mocked.ensureWorkspaceSkillMirror.mockClear();
 });
 
 describe("mindkeeperPlugin", () => {
   it("registers tools, CLI, and watcher service", () => {
     const registerService = vi.fn();
     const info = vi.fn();
+    const getWorkspaceDir = vi.fn(() => "/tmp/openclaw-workspace");
 
     mindkeeperPlugin({
+      getWorkspaceDir,
       registerService,
       log: { info },
     });
@@ -42,6 +50,9 @@ describe("mindkeeperPlugin", () => {
     expect(mocked.registerTrackerTools.mock.calls[0]?.[1]).toBe(
       mocked.registerTrackerCli.mock.calls[0]?.[1],
     );
+    expect(mocked.ensureWorkspaceSkillMirror).toHaveBeenCalledWith("/tmp/openclaw-workspace", {
+      log: { info },
+    });
     expect(registerService).toHaveBeenCalledOnce();
     expect(registerService.mock.calls[0]?.[0]?.id).toBe("mindkeeper-watcher");
     expect(info).toHaveBeenCalledWith("[mindkeeper] Plugin loaded.");

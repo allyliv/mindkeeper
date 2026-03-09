@@ -24,6 +24,8 @@ openclaw plugins install mindkeeper-openclaw
 
 Then restart your Gateway once.
 
+On startup, the plugin also mirrors its built-in `mindkeeper` skill into the workspace so new sessions can still find the bootstrap instructions even if no separate ClawHub skill was installed.
+
 ### Option 2 — Install the skill and let the AI guide setup
 
 ```bash
@@ -63,6 +65,11 @@ openclaw mind snapshot stable-v2
 
 - Node.js >= 22
 - OpenClaw with Gateway running
+
+## Troubleshooting
+
+- If a fresh `/new` session says the plugin is missing right after install, restart Gateway once and retry. Some OpenClaw flows do not expose plugin tools or the built-in skill until startup finishes.
+- If tools still do not appear, verify that `mindkeeper-openclaw` is enabled in your OpenClaw config and that `mind_status`, `mind_history`, `mind_diff`, `mind_rollback`, and `mind_snapshot` are allowed tools.
 
 ## Commit Messages
 

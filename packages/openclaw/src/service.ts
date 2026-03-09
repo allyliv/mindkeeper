@@ -1,6 +1,7 @@
 import { Tracker, Watcher } from "mindkeeper";
 import type { TrackerConfig } from "mindkeeper";
 import { createOpenClawLlmProvider } from "./llm-provider.js";
+import { ensureWorkspaceSkillMirror } from "./skill-mirror.js";
 
 interface ServiceContext {
   config?: unknown;
@@ -49,6 +50,8 @@ export function createWatcherService(
         log.warn("[mindkeeper] No workspace directory in service context. Watcher disabled.");
         return;
       }
+
+      ensureWorkspaceSkillMirror(workspaceDir, { log: api.log });
 
       const llmProvider = await createOpenClawLlmProvider({
         config: ctx.config as Record<string, unknown> | undefined,

@@ -17,7 +17,7 @@ This skill teaches the AI how to bootstrap and use the `mindkeeper-openclaw` plu
 clawhub install mindkeeper
 ```
 
-On first use, the AI checks whether `mindkeeper-openclaw` is available. If it is missing, the AI asks for your confirmation before installing the plugin and before restarting Gateway. If automatic restart is unavailable, it tells you to restart Gateway manually.
+On first use, the AI checks whether `mindkeeper-openclaw` is available. If the tools are not ready yet, it should first consider whether Gateway still needs to finish loading or restart before assuming the plugin is missing.
 
 ## What It Enables
 
@@ -74,7 +74,7 @@ openclaw plugins install mindkeeper-openclaw
 ## Troubleshooting
 
 - **History is empty** — Call `mind_status` to check whether mindkeeper is initialized. Make a small edit to a tracked file to trigger the first snapshot.
-- **Tools not found** — Ensure the `mindkeeper-openclaw` plugin is installed and Gateway has been restarted.
+- **Tools not found** — Ensure the `mindkeeper-openclaw` plugin is installed and Gateway has been restarted. A brand-new `/new` session can briefly miss the tool context while startup is still finishing.
 - **Rollback not applying** — After rollback, run `/new` to reload the session with the restored file.
 
 ## Links

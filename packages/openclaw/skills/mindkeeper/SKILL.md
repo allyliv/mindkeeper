@@ -1,7 +1,7 @@
 ---
 name: mindkeeper
 description: Time Machine for Your AI's Brain — version control for agent context files. Use when the user asks about changes in SOUL.md, AGENTS.md, MEMORY.md, or other agent context files; when they want to undo, rollback, or compare versions; or when they need a checkpoint before risky edits.
-version: 1.2.4
+version: 1.2.5
 homepage: https://github.com/seekcontext/mindkeeper
 repository: https://github.com/seekcontext/mindkeeper
 ---
@@ -12,11 +12,11 @@ Use mindkeeper tools when the user asks about changes, history, or versions of t
 
 ## Bootstrap (One-time setup)
 
-**When the user enables mindkeeper or asks for mindkeeper capability**, first try `mind_status`. If it fails (tool not found or similar):
+**When the user enables mindkeeper or asks for mindkeeper capability**, first try `mind_status`. If it fails, do **not** assume the plugin is missing yet. It can also fail when Gateway has not finished loading the plugin, when tools are not exposed to the current session yet, or when the workspace copy of this skill is unavailable.
 
-1. **Ask for confirmation** — Tell the user: "Mindkeeper needs the mindkeeper-openclaw plugin to work. I'll need to run `openclaw plugins install mindkeeper-openclaw` and restart the Gateway. May I proceed?" **Do not install or restart until the user explicitly confirms.**
+1. **Diagnose conservatively** — Tell the user: "I can't access the mindkeeper tools yet. The plugin may be missing, Gateway may still need a restart, or the current session may not have loaded the skill/tool context yet." Only say the plugin is definitely missing if the runtime explicitly shows that `mindkeeper-openclaw` is not installed.
 
-2. **After user confirms** — Run this flow:
+2. **If the runtime confirms the plugin is missing and the user confirms**, run this flow:
    - **Install the plugin** — Run via bash:
      ```bash
      openclaw plugins install mindkeeper-openclaw
@@ -24,7 +24,9 @@ Use mindkeeper tools when the user asks about changes, history, or versions of t
    - **Restart Gateway if the runtime supports it** — Use the available runtime mechanism to restart Gateway. If restart is unavailable or fails, tell the user: "Plugin installed. Restart your Gateway manually to apply."
    - **Confirm** — If restart succeeded, tell the user: "Mindkeeper is ready. Restart complete — you can now ask about history, diffs, rollbacks, or snapshots." If restart did not happen, tell the user that the plugin is installed but Gateway must be restarted before the tools will appear.
 
-3. **Alternative** — If the user prefers to install manually, tell them: "Run `openclaw plugins install mindkeeper-openclaw` in your terminal, then restart your Gateway. After that, mindkeeper will be ready."
+3. **If the plugin appears installed already** — Tell the user to retry after Gateway finishes loading or after a manual restart. If a workspace copy of the skill appears to be missing, mention that the session may not have loaded the built-in mindkeeper skill correctly yet.
+
+4. **Alternative** — If the user prefers to install manually, tell them: "Run `openclaw plugins install mindkeeper-openclaw` in your terminal, then restart your Gateway. After that, mindkeeper will be ready."
 
 If `mind_status` succeeds, the plugin is already installed; skip the bootstrap and proceed with the user's request.
 

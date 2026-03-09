@@ -2,6 +2,7 @@ import type { Tracker } from "mindkeeper";
 import { registerTrackerTools } from "./tools.js";
 import { registerTrackerCli } from "./cli.js";
 import { createWatcherService } from "./service.js";
+import { ensureWorkspaceSkillMirror } from "./skill-mirror.js";
 
 const MINDKEEPER_TOOLS = [
   "mind_status",
@@ -22,6 +23,11 @@ export default function mindkeeperPlugin(api: OpenClawPluginApi) {
 
   registerTrackerTools(api, trackerRef);
   registerTrackerCli(api, trackerRef);
+
+  // Some OpenClaw flows look for skills inside the workspace instead of the
+  // installed extension directory. Mirror the built-in skill so `/new` sessions
+  // can still find the mindkeeper bootstrap instructions.
+  ensureWorkspaceSkillMirror(api.getWorkspaceDir?.(), { log: api.log });
 
   const watcherService = createWatcherService(api, trackerRef);
   api.registerService?.(watcherService);
