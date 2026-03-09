@@ -1,16 +1,29 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
+import fs from "node:fs";
 import path from "node:path";
 import { Tracker } from "../tracker.js";
 import { Watcher } from "../watcher.js";
 
 const program = new Command();
+const VERSION = readPackageVersion();
 
 program
   .name("mindkeeper")
   .description("Time machine for your AI's brain — version control for agent context files")
-  .version("0.2.5");
+  .version(VERSION);
+
+function readPackageVersion(): string {
+  try {
+    const packageJsonPath = new URL("../../package.json", import.meta.url);
+    const content = fs.readFileSync(packageJsonPath, "utf-8");
+    const pkg = JSON.parse(content) as { version?: string };
+    return pkg.version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
 
 function resolveWorkDir(dir?: string): string {
   return path.resolve(dir ?? process.cwd());

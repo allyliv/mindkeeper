@@ -55,8 +55,9 @@ function run() {
 
   const allow = cfg.tools?.allow ?? [];
   const alsoAllow = cfg.tools?.alsoAllow ?? [];
-  const target = allow.length > 0 ? allow : alsoAllow;
-  const key = allow.length > 0 ? "allow" : "alsoAllow";
+  const hasAllow = Array.isArray(cfg.tools?.allow);
+  const target = hasAllow ? allow : alsoAllow;
+  const key = hasAllow ? "allow" : "alsoAllow";
 
   const existing = new Set(
     target.map((e) => String(e).trim().toLowerCase()).filter(Boolean),

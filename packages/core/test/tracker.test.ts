@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -13,6 +13,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await fs.rm(tempDir, { recursive: true, force: true });
 });
 
@@ -25,6 +26,13 @@ async function readFile(name: string): Promise<string> {
 }
 
 describe("Tracker.init", () => {
+  it("marks an empty workspace as initialized", async () => {
+    await tracker.init();
+
+    const status = await tracker.status();
+    expect(status.initialized).toBe(true);
+  });
+
   it("creates .mindkeeper directory and .gitignore", async () => {
     await writeFile("AGENTS.md", "# Agent rules");
     await tracker.init();
@@ -45,6 +53,35 @@ describe("Tracker.init", () => {
     const commits = await tracker.history();
     expect(commits.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("preserves existing gitignore content when appending mindkeeper entry", async () => {
+    await writeFile("AGENTS.md", "# Agent rules");
+    await writeFile(".gitignore", "node_modules/\n");
+
+    await tracker.init();
+
+    const gitignore = await readFile(".gitignore");
+    expect(gitignore).toContain("node_modules/");
+    expect(gitignore).toContain(".mindkeeper/");
+  });
+
+  it("does not overwrite gitignore when reading it fails", async () => {
+    await writeFile("AGENTS.md", "# Agent rules");
+    await writeFile(".gitignore", "node_modules/\n");
+
+    const originalReadFile = fs.readFile.bind(fs);
+    vi.spyOn(fs, "readFile").mockImplementation(async (filePath, ...args) => {
+      if (String(filePath) === path.join(tempDir, ".gitignore")) {
+        const error = new Error("Permission denied") as NodeJS.ErrnoException;
+        error.code = "EACCES";
+        throw error;
+      }
+      return originalReadFile(filePath as Parameters<typeof fs.readFile>[0], ...args);
+    });
+
+    await expect(tracker.init()).rejects.toThrow("Permission denied");
+    expect(await originalReadFile(path.join(tempDir, ".gitignore"), "utf-8")).toBe("node_modules/\n");
+  });
 });
 
 describe("Tracker.snapshot", () => {
@@ -63,7 +100,7 @@ describe("Tracker.snapshot", () => {
     await writeFile("AGENTS.md", "# Rules");
     await tracker.init();
 
-    const commit = await tracker.snapshot({ name: "checkpoint-1", message: "First checkpoint" });
+    await tracker.snapshot({ name: "checkpoint-1", message: "First checkpoint" });
     const status = await tracker.status();
 
     expect(status.snapshots.some((s) => s.name === "checkpoint-1")).toBe(true);
@@ -149,6 +186,14 @@ describe("Tracker.rollback", () => {
 });
 
 describe("Tracker.status", () => {
+  it("counts tracked files in a clean workspace", async () => {
+    await writeFile("AGENTS.md", "initial");
+    await tracker.init();
+
+    const status = await tracker.status();
+    expect(status.trackedFileCount).toBe(1);
+  });
+
   it("reports pending changes", async () => {
     await writeFile("AGENTS.md", "initial");
     await tracker.init();
@@ -159,5 +204,57 @@ describe("Tracker.status", () => {
     expect(status.initialized).toBe(true);
     expect(status.pendingChanges.length).toBeGreaterThan(0);
     expect(status.pendingChanges[0].filepath).toBe("AGENTS.md");
+  });
+
+  it("reports deleted tracked files as pending changes", async () => {
+    await writeFile("AGENTS.md", "initial");
+    await tracker.init();
+
+    await fs.unlink(path.join(tempDir, "AGENTS.md"));
+    const status = await tracker.status();
+
+    expect(status.pendingChanges).toContainEqual({
+      filepath: "AGENTS.md",
+      status: "deleted",
+    });
+  });
+
+  it("loads workspace config for a fresh tracker instance", async () => {
+    await writeFile(
+      ".mindkeeper.json",
+      JSON.stringify({
+        tracking: { include: ["CUSTOM.md"], exclude: [] },
+        snapshot: { debounceMs: 1000 },
+        commitMessage: { mode: "template" },
+      }),
+    );
+    await writeFile("CUSTOM.md", "v1");
+
+    await tracker.init();
+    await writeFile("CUSTOM.md", "v2");
+
+    const freshTracker = new Tracker({ workDir: tempDir });
+    const status = await freshTracker.status();
+
+    expect(status.pendingChanges).toContainEqual({
+      filepath: "CUSTOM.md",
+      status: "modified",
+    });
+  });
+});
+
+describe("Tracker deletion snapshots", () => {
+  it("records deletions in a snapshot commit", async () => {
+    await writeFile("AGENTS.md", "initial");
+    await tracker.init();
+
+    await fs.unlink(path.join(tempDir, "AGENTS.md"));
+    await tracker.snapshot({ message: "Delete agents" });
+
+    const history = await tracker.history();
+    expect(history[0]?.message).toBe("Delete agents");
+
+    const status = await tracker.status();
+    expect(status.pendingChanges).toHaveLength(0);
   });
 });

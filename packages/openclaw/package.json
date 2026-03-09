@@ -1,6 +1,6 @@
 {
   "name": "mindkeeper-openclaw",
-  "version": "0.2.24",
+  "version": "0.2.25",
   "description": "OpenClaw plugin for mindkeeper: auto-snapshot, diff, and rollback for agent context files",
   "keywords": [
     "openclaw",
@@ -31,6 +31,7 @@
   ],
   "scripts": {
     "build": "node build.mjs",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
@@ -50,7 +51,8 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "esbuild": "^0.27.3",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=22.0.0"

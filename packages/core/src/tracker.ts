@@ -54,6 +54,7 @@ export interface RollbackOptions {
 export class Tracker {
   private store: IsomorphicGitStore;
   private config: TrackerConfig;
+  private configLoaded: boolean;
   private llmProvider?: LlmProvider;
   readonly workDir: string;
   readonly gitDir: string;
@@ -66,6 +67,7 @@ export class Tracker {
       ? path.resolve(options.gitDir)
       : path.join(this.workDir, GITDIR_NAME);
     this.config = options.config ?? getDefaultConfig();
+    this.configLoaded = options.config !== undefined;
     this.configOverrides = options.configOverrides;
     this.llmProvider = options.llmProvider;
 
@@ -76,7 +78,7 @@ export class Tracker {
   }
 
   async init(): Promise<{ initialFiles: string[] }> {
-    this.config = await loadConfig(this.workDir, this.configOverrides);
+    await this.ensureConfigLoaded();
     await this.store.init();
     await this.ensureGitignore();
 
@@ -91,6 +93,7 @@ export class Tracker {
   }
 
   async snapshot(options?: SnapshotOptions): Promise<CommitInfo> {
+    await this.ensureConfigLoaded();
     const changed = await this.getTrackedChangedFiles();
     const filesToCommit = changed.map((e) => e.filepath);
 
@@ -180,23 +183,11 @@ export class Tracker {
   }
 
   async status(): Promise<TrackerStatus> {
-    let initialized = false;
-    try {
-      await this.resolveHead();
-      initialized = true;
-    } catch {
-      initialized = false;
-    }
-
+    await this.ensureConfigLoaded();
+    const initialized = await this.isInitialized();
     const pendingChanges = initialized ? await this.getTrackedChangedFiles() : [];
     const snapshots = initialized ? await this.store.listTags() : [];
-
-    const trackedPatterns = this.config.tracking.include;
-    let trackedFileCount = 0;
-    if (initialized) {
-      const allChanged = await this.store.getChangedFiles();
-      trackedFileCount = allChanged.length + pendingChanges.length;
-    }
+    const trackedFileCount = initialized ? await this.getTrackedFileCount() : 0;
 
     return {
       initialized,
@@ -209,6 +200,7 @@ export class Tracker {
   }
 
   async autoSnapshot(): Promise<CommitInfo | null> {
+    await this.ensureConfigLoaded();
     const changed = await this.getTrackedChangedFiles();
     if (changed.length === 0) return null;
 
@@ -259,6 +251,17 @@ export class Tracker {
     return allChanged.filter((entry) => this.isTracked(entry.filepath));
   }
 
+  private async getTrackedFileCount(): Promise<number> {
+    const files = new Set(await this.store.listWorkdirFiles());
+    const headOid = await this.resolveHead().catch(() => null);
+    if (headOid) {
+      for (const filepath of await this.store.getCommitFiles(headOid)) {
+        files.add(filepath);
+      }
+    }
+    return Array.from(files).filter((filepath) => this.isTracked(filepath)).length;
+  }
+
   private isTracked(filepath: string): boolean {
     const allExcluded = [...this.config.tracking.exclude, ...ALWAYS_EXCLUDED];
     for (const pattern of allExcluded) {
@@ -268,6 +271,23 @@ export class Tracker {
       if (minimatch(filepath, pattern)) return true;
     }
     return false;
+  }
+
+  private async ensureConfigLoaded(): Promise<void> {
+    if (this.configLoaded) {
+      return;
+    }
+    this.config = await loadConfig(this.workDir, this.configOverrides);
+    this.configLoaded = true;
+  }
+
+  private async isInitialized(): Promise<boolean> {
+    try {
+      await fsPromises.access(path.join(this.gitDir, "HEAD"));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private async resolveHead(): Promise<string> {
@@ -292,7 +312,11 @@ export class Tracker {
         ? `${content}${entry}\n`
         : `${content}\n${entry}\n`;
       await fsPromises.writeFile(gitignorePath, newContent, "utf-8");
-    } catch {
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException | undefined)?.code;
+      if (code !== "ENOENT") {
+        throw err;
+      }
       await fsPromises.writeFile(gitignorePath, `${entry}\n`, "utf-8");
     }
   }

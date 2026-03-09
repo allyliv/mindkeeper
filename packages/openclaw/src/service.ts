@@ -1,5 +1,5 @@
 import { Tracker, Watcher } from "mindkeeper";
-import type { LlmProvider } from "mindkeeper";
+import type { TrackerConfig } from "mindkeeper";
 import { createOpenClawLlmProvider } from "./llm-provider.js";
 
 interface ServiceContext {
@@ -20,7 +20,7 @@ interface PluginService {
 }
 
 interface PluginApi {
-  pluginConfig?: Record<string, unknown>;
+  pluginConfig?: Partial<TrackerConfig>;
   log?: {
     info?(...args: unknown[]): void;
     warn?(...args: unknown[]): void;
@@ -55,13 +55,10 @@ export function createWatcherService(
         log,
       });
 
-      const configOverrides = api.pluginConfig as
-        | { commitMessage?: { mode?: "template" | "llm" } }
-        | undefined;
       const tracker = new Tracker({
         workDir: workspaceDir,
         llmProvider: llmProvider ?? undefined,
-        configOverrides: configOverrides ?? undefined,
+        configOverrides: api.pluginConfig,
       });
       await tracker.init();
       trackerRef.current = tracker;

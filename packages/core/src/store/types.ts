@@ -34,4 +34,5 @@ export interface GitStore {
   listTags(): Promise<Array<{ name: string; oid: string }>>;
   getChangedFiles(filepaths?: string[]): Promise<FileStatusEntry[]>;
   getCommitFiles(commitOid: string): Promise<string[]>;
+  listWorkdirFiles(): Promise<string[]>;
 }

@@ -191,14 +191,14 @@ export class IsomorphicGitStore implements GitStore {
    * when gitdir is separated from the work directory.
    */
   async getChangedFiles(filepaths?: string[]): Promise<FileStatusEntry[]> {
-    const filesToCheck = filepaths ?? await this.listWorkdirFiles();
-
     let headOid: string | null = null;
     try {
       headOid = await git.resolveRef({ fs, dir: this.workDir, gitdir: this.gitDir, ref: "HEAD" });
     } catch {
       // no commits yet — everything is "added"
     }
+
+    const filesToCheck = filepaths ?? await this.listTrackedCandidates(headOid);
 
     const entries: FileStatusEntry[] = [];
 
@@ -243,7 +243,17 @@ export class IsomorphicGitStore implements GitStore {
     return entries;
   }
 
-  private async listWorkdirFiles(): Promise<string[]> {
+  private async listTrackedCandidates(headOid: string | null): Promise<string[]> {
+    const workdirFiles = await this.listWorkdirFiles();
+    if (!headOid) {
+      return workdirFiles;
+    }
+
+    const headFiles = await this.getCommitFiles(headOid);
+    return Array.from(new Set([...workdirFiles, ...headFiles]));
+  }
+
+  async listWorkdirFiles(): Promise<string[]> {
     const files: string[] = [];
     await this.walkDir(this.workDir, this.workDir, files);
     return files;
