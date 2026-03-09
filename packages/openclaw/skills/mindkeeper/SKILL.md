@@ -1,7 +1,7 @@
 ---
 name: mindkeeper
 description: Time Machine for Your AI's Brain — version control for agent context files. Use when the user asks about changes in SOUL.md, AGENTS.md, MEMORY.md, or other agent context files; when they want to undo, rollback, or compare versions; or when they need a checkpoint before risky edits.
-version: 1.2.3
+version: 1.2.4
 homepage: https://github.com/seekcontext/mindkeeper
 repository: https://github.com/seekcontext/mindkeeper
 ---
@@ -27,6 +27,14 @@ Use mindkeeper tools when the user asks about changes, history, or versions of t
 3. **Alternative** — If the user prefers to install manually, tell them: "Run `openclaw plugins install mindkeeper-openclaw` in your terminal, then restart your Gateway. After that, mindkeeper will be ready."
 
 If `mind_status` succeeds, the plugin is already installed; skip the bootstrap and proceed with the user's request.
+
+## Tool Preference
+
+In OpenClaw Plugin mode, prefer the `mind_*` tools over CLI commands for normal mindkeeper operations.
+
+- Use `mind_status`, `mind_history`, `mind_diff`, `mind_snapshot`, and `mind_rollback` whenever they are available.
+- Do not use `openclaw mind ...` or `mindkeeper ...` for routine history, diff, snapshot, or rollback requests if the plugin tools are available.
+- CLI commands are for one-time setup, troubleshooting, manual user workflows, or when the user explicitly asks for terminal commands.
 
 ## Available Tools
 
@@ -60,13 +68,24 @@ Excluded by default: `BOOTSTRAP.md`, `canvas/**`, `.git/`, `.mindkeeper/`.
 | "Is mindkeeper tracking my files?" | `mind_status` |
 | "What does my history look like?" | `mind_history` without a file filter |
 
+## Direct Edit Requests
+
+If the user asks to directly edit a tracked file such as `SOUL.md`, `AGENTS.md`, or `MEMORY.md`, make the edit directly.
+
+- Do not block on CLI availability.
+- Do not mention unavailable CLI commands unless the user explicitly asked for a CLI-based workflow.
+- Mindkeeper's background watcher should capture the change automatically after the edit.
+- If relevant, you may mention that the change should now be tracked by mindkeeper.
+
 ## Tool Usage Guide
 
 ### mind_status
-Call this first if you're unsure whether mindkeeper is initialized or what files are being tracked.
+Call this first when the user asks about history, tracking state, snapshots, or rollback, or if you're unsure whether mindkeeper is initialized.
 ```
 mind_status → { initialized, workDir, pendingChanges, snapshots }
 ```
+
+You do not need to call `mind_status` before a simple direct edit request unless the user specifically asks about tracking or history.
 
 ### mind_history
 Returns a list of commits with short hash, date, and message.
@@ -117,6 +136,7 @@ After success, tell the user: **"Run `/new` to apply the changes to your current
 ## Important Notes
 
 - **This skill is the guide, the plugin is the engine** — the `mindkeeper-openclaw` plugin provides the actual `mind_*` tools and watcher; this skill teaches the AI how to bootstrap and use them safely
+- **Use plugin tools first** — in OpenClaw Plugin mode, prefer `mind_*` tools over CLI commands for normal operations
 - **Rollback is per-file** — it only restores the specified file, not all files at once
 - **Rollbacks are non-destructive** — every rollback creates a new commit, so it can itself be undone
 - **Auto-snapshots run in the background** — the user doesn't need to manually save; mindkeeper captures every change automatically
@@ -124,3 +144,4 @@ After success, tell the user: **"Run `/new` to apply the changes to your current
 - **Named snapshots are the safety net** — encourage users to snapshot before major personality or rule changes
 - **If history is empty** — mindkeeper may not have initialized yet, or no changes have been made since install. Call `mind_status` to check.
 - **Commit hashes** — always use the `oid` field from `mind_history` results. Short 8-character hashes are fine.
+- **Keep user-facing messages focused** — if a task can be completed with file edits or `mind_*` tools, do not distract the user with unavailable CLI details

@@ -34,6 +34,8 @@ On first use, the AI checks whether `mindkeeper-openclaw` is available. If it is
 
 The `mindkeeper-openclaw` plugin provides the actual `mind_*` tools and background watcher. This skill provides the guidance and first-use bootstrap behavior.
 
+In OpenClaw Plugin mode, the AI should prefer the `mind_*` tools for history, diff, snapshot, and rollback tasks. CLI commands are mainly for setup, troubleshooting, or manual terminal workflows.
+
 If you prefer to install the plugin yourself first:
 
 ```bash
@@ -67,6 +69,7 @@ openclaw plugins install mindkeeper-openclaw
 | "Show me the diff from last week" | `mind_history` → find commit → `mind_diff` |
 | "Undo that change" | `mind_rollback` preview first, then execute after confirmation |
 | "Save a checkpoint before I experiment" | `mind_snapshot` with a descriptive name |
+| "Edit SOUL.md to change my tone" | Edit the file directly; mindkeeper should track the change automatically |
 
 ## Troubleshooting
 
