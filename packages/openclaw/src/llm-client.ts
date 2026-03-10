@@ -1,13 +1,9 @@
 /**
- * LLM client using Vercel AI SDK — unified interface across providers.
+ * LLM client using fetch — OpenAI-compatible API for all providers.
  * API key is passed as a parameter. Kept separate from auth-resolver.ts
  * to avoid security scanner false positives (env + network in same file).
  */
 
-import { generateText } from "ai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { normalizeProvider } from "./auth-resolver.js";
 
 const SYSTEM_PROMPT =
@@ -28,93 +24,56 @@ export interface CallLlmParams {
 }
 
 export async function callLlm(params: CallLlmParams): Promise<string> {
+  const baseUrl = resolveBaseUrl(params.provider, params.baseUrl);
+  const url = `${baseUrl.replace(/\/$/, "")}/chat/completions`;
+
+  const body: Record<string, unknown> = {
+    model: params.model,
+    max_tokens: MAX_TOKENS,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: params.userPrompt },
+    ],
+  };
+
+  // Moonshot Kimi 2.5: disable thinking for simple tasks
   const normalized = normalizeProvider(params.provider);
-  const abortSignal = AbortSignal.timeout(LLM_TIMEOUT_MS);
-
-  if (normalized === "anthropic") {
-    return callWithAnthropic(params, abortSignal);
-  }
-  if (normalized === "google") {
-    return callWithGoogle(params, abortSignal);
-  }
-  return callWithOpenAiCompatible(params, abortSignal);
-}
-
-async function callWithAnthropic(
-  params: { model: string; apiKey: string; userPrompt: string },
-  abortSignal: AbortSignal,
-): Promise<string> {
-  const anthropic = createAnthropic({ apiKey: params.apiKey });
-  const { text } = await generateText({
-    model: anthropic(params.model),
-    system: SYSTEM_PROMPT,
-    prompt: params.userPrompt,
-    maxOutputTokens: MAX_TOKENS,
-    abortSignal,
-  });
-  return text?.trim() ?? "";
-}
-
-async function callWithGoogle(
-  params: { model: string; apiKey: string; userPrompt: string },
-  abortSignal: AbortSignal,
-): Promise<string> {
-  const google = createGoogleGenerativeAI({ apiKey: params.apiKey });
-  const { text } = await generateText({
-    model: google(params.model),
-    system: SYSTEM_PROMPT,
-    prompt: params.userPrompt,
-    maxOutputTokens: MAX_TOKENS,
-    abortSignal,
-  });
-  return text?.trim() ?? "";
-}
-
-async function callWithOpenAiCompatible(
-  params: {
-    provider: string;
-    model: string;
-    apiKey: string;
-    userPrompt: string;
-    baseUrl?: string;
-  },
-  abortSignal: AbortSignal,
-): Promise<string> {
-  const baseUrl = resolveOpenAiBaseUrl(params.provider, params.baseUrl);
-  const normalized = normalizeProvider(params.provider);
-
-  // Moonshot k2.5: disable thinking for simple tasks
   const isMoonshotK25 =
     (normalized === "moonshot" || normalized === "moonshotcn") &&
-    params.model.includes("k2.5");
+    params.model.toLowerCase().includes("k2.5");
+  if (isMoonshotK25) {
+    body.thinking = { type: "disabled" };
+  }
 
-  const provider = createOpenAICompatible({
-    baseURL: baseUrl,
-    name: params.provider,
-    apiKey: params.apiKey,
-    ...(isMoonshotK25 && {
-      transformRequestBody: (body: Record<string, unknown>) => ({
-        ...body,
-        thinking: { type: "disabled" },
-      }),
-    }),
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
   });
 
-  const { text } = await generateText({
-    model: provider.chatModel(params.model),
-    system: SYSTEM_PROMPT,
-    prompt: params.userPrompt,
-    maxOutputTokens: MAX_TOKENS,
-    abortSignal,
-  });
-  return text?.trim() ?? "";
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`LLM API ${res.status}: ${text || res.statusText}`);
+  }
+
+  const data = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  return data.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
-function resolveOpenAiBaseUrl(provider: string, configuredBaseUrl?: string): string {
+function resolveBaseUrl(provider: string, configuredBaseUrl?: string): string {
   if (configuredBaseUrl) return configuredBaseUrl.replace(/\/$/, "");
 
   const normalized = normalizeProvider(provider);
   const map: Record<string, string> = {
+    // OpenAI-compatible endpoints (Anthropic, Google use compatible APIs too)
+    anthropic: "https://api.anthropic.com/v1",
+    google: "https://generativelanguage.googleapis.com/v1beta/openai",
     openai: "https://api.openai.com/v1",
     openaicodex: "https://api.openai.com/v1",
     openrouter: "https://openrouter.ai/api/v1",

@@ -21,7 +21,7 @@ const mindkeeperAlias = {
   },
 };
 
-// Bundle 1: llm-client — CJS format, fetch only, NO process.env
+// Bundle 1: llm-client — CJS format, fetch only, NO process.env, no AI SDK
 await esbuild.build({
   entryPoints: ["src/llm-client.ts"],
   bundle: true,
@@ -30,7 +30,6 @@ await esbuild.build({
   format: "cjs",
   outfile: "dist/llm-client.cjs",
   external: NODE_EXTERNALS,
-  plugins: [mindkeeperAlias],
   logLevel: "warning",
 });
 

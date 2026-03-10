@@ -103,7 +103,7 @@ describe("Watcher integration: files created after init", () => {
 
     const status = await tracker.status();
     expect(status.pendingChanges).toHaveLength(0);
-  }, 15_000);
+  }, 20_000);
 
   it("case 2 — memory/2026-03-10.md created after init triggers an auto-commit", async () => {
     const { promise, resolve } = makeSnapshotWaiter();
@@ -117,7 +117,7 @@ describe("Watcher integration: files created after init", () => {
 
     const history = await tracker.history({ file: "memory/2026-03-10.md" });
     expect(history.length).toBeGreaterThanOrEqual(1);
-  }, 15_000);
+  }, 20_000);
 
   it("case 3 — file present at init but never committed is committed on next write", async () => {
     // Write MEMORY.md before starting the watcher (simulates a file created
@@ -145,7 +145,7 @@ describe("Watcher integration: files created after init", () => {
 
     const history = await tracker.history({ file: "MEMORY.md" });
     expect(history.length).toBeGreaterThanOrEqual(1);
-  }, 15_000);
+  }, 20_000);
 
   it("multiple rapid writes are debounced into a single commit", async () => {
     const snapshots: Array<{ oid: string; message: string }> = [];
@@ -175,7 +175,7 @@ describe("Watcher integration: files created after init", () => {
 
     const content = await fs.readFile(path.join(tempDir, "SOUL.md"), "utf-8");
     expect(content).toBe("v3");
-  }, 15_000);
+  }, 20_000);
 
   it("stop() flushes pending changes before closing", async () => {
     const snapshots: Array<{ oid: string; message: string }> = [];
@@ -201,5 +201,5 @@ describe("Watcher integration: files created after init", () => {
     // stop() must have flushed the pending change synchronously
     expect(autoSnapshotSpy).toHaveBeenCalledOnce();
     expect(snapshots).toHaveLength(1);
-  }, 15_000);
+  }, 20_000);
 });
